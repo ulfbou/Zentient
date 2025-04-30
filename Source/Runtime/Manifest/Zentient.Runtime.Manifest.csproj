@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Manifest.Abstractions\Zentient.Runtime.Manifest.Abstractions.csproj" />
+		<ProjectReference Include="..\Manifest.Configuration\Zentient.Runtime.Manifest.Configuration.csproj" />
+	</ItemGroup>
+
+</Project>
