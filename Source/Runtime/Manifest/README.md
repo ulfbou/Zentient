@@ -1,55 +1,51 @@
-
 # Zentient.Runtime.Manifest
 
-**Zentient.Runtime.Manifest** provides a streamlined and strongly typed approach to managing localized templates in .NET applications. Using enums as template keys and scopes, this package enables lightweight multi-language support through configuration and modern dependency injection practices.
+**Zentient.Runtime.Manifest** is a powerful library designed to manage localized templates and manifests in .NET applications. It provides tools for resolving localized values, validating placeholder counts, and integrating configuration-based templates. The library is lightweight, extensible, and designed to seamlessly integrate into .NET projects.
 
-## Overview
+## Features
 
-This package offers:
-
-- **Scoped Template Access:** Create enum-based accessors for resolving localized templates.
-- **Lightweight Localization:** Retrieve templates based on the current UI culture or a specified culture.
-- **Flexible Configuration:** Supports appsettings-based templates with optional placeholder validation.
-- **Extensibility:** Core functionality only—implementations like `ConfigurationTemplateProvider` and related options are defined in `Zentient.Runtime.Manifest.Configuration`. Shared interfaces (e.g., `ILocalizedValueProvider`) are defined in `Zentient.Runtime.Manifest.Abstractions`.
-
-> **Note:** This library offers lightweight template localization. It is not a replacement for .resx, `ResourceManager`, or `IStringLocalizer`.
-
-## Prerequisites
-
-- **.NET 6.0 or later**
-- **Microsoft.Extensions.*** libraries for configuration, logging, and dependency injection
+- **Scoped Template Access**: Use enums for strongly-typed access to localized templates.
+- **Lightweight Localization**: Retrieve templates based on the current UI culture or a specified culture.
+- **Configuration-Based Templates**: Supports appsettings-based templates with optional placeholder validation.
+- **Extensibility**: Core abstractions and extensible implementations such as `ConfigurationTemplateProvider`.
+- **Manifest Management**: Parse, validate, and generate manifests dynamically based on runtime requirements.
 
 ## Installation
 
-Install using either NuGet Package Manager or the .NET CLI:
+Install the core library using the .NET CLI:
 
 ```bash
-dotnet add package Zentient.Runtime.Manifest
+dotnet add package Zentient.Runtime.Manifest --version 0.1.0
 ```
 
-To use the configuration-based implementation:
+For configuration-based functionality, add:
 
 ```bash
 dotnet add package Zentient.Runtime.Manifest.Configuration
 ```
 
-> The core abstractions are included in:
+For core abstractions only, use:
 
 ```bash
 dotnet add package Zentient.Runtime.Manifest.Abstractions
 ```
 
-## Usage
+## Getting Started
+
+### Prerequisites
+
+- **.NET 6.0 or later**
+- **Microsoft.Extensions.*** libraries for configuration, logging, and dependency injection
 
 ### Service Registration
 
-Add template provider services using one of the available overloads:
+Register the template provider services in your `Startup` class or `Program.cs`:
 
 ```csharp
 using Zentient.Runtime.Manifest;
 using Zentient.Runtime.Manifest.Configuration;
 
-services.AddTemplateProviderServices(); // Uses "Manifest" section by default
+services.AddTemplateProviderServices(); // Default configuration section: "Manifest"
 
 services.AddTemplateProviderServices("CustomManifest", enforcePlaceholderCount: false);
 
@@ -60,7 +56,17 @@ services.AddTemplateProviderServices(options =>
 });
 ```
 
-This registers an `ILocalizedValueProvider` implementation that resolves templates from configuration.
+This registers an `ILocalizedValueProvider` for resolving templates from configuration.
+
+## Usage Examples
+
+### Resolving a Localized Value
+
+```csharp
+var provider = new ConfigurationTemplateProvider(configuration, logger);
+var localizedValue = provider.Resolve("ScopeName", "KeyName", CultureInfo.CurrentCulture, "arg1", "arg2");
+Console.WriteLine(localizedValue);
+```
 
 ### Creating a Scoped Template Accessor
 
@@ -84,11 +90,9 @@ public class EmailTemplateAccessor : ScopedTemplateAccessor<EmailTemplates>
 }
 ```
 
-`GetValue(...)` uses `CultureInfo.CurrentUICulture` if no culture is specified. Keys are resolved via `ToString()` on the enum. Ensure configuration keys match.
-
 ### Configuration Example
 
-In `appsettings.json`:
+Add your templates to `appsettings.json`:
 
 ```json
 {
@@ -100,31 +104,60 @@ In `appsettings.json`:
 }
 ```
 
-If you use a custom configuration root, reflect that in both your settings and registration.
+If using a custom root key, update the configuration section accordingly.
 
 ### Placeholder Enforcement
 
-If `EnforcePlaceholderCount = true`, the template provider ensures that the number of `{0}`, `{1}`, etc., placeholders matches the number of provided arguments. An exception is thrown if the count does not match.
+When `EnforcePlaceholderCount = true`, the library ensures the number of placeholders (`{0}`, `{1}`, etc.) matches the number of provided arguments. If the count does not match, an exception is thrown.
+
+## Advanced Manifest Management
+
+In addition to template localization, `Zentient.Runtime.Manifest` provides tools to handle runtime manifests effectively:
+
+1. **Parsing a Manifest:**
+   ```csharp
+   var manifest = ManifestParser.Parse("path/to/manifest.json");
+   Console.WriteLine(manifest.Name);
+   ```
+
+2. **Validating a Manifest:**
+   ```csharp
+   bool isValid = ManifestValidator.Validate(manifest);
+   Console.WriteLine($"Manifest is valid: {isValid}");
+   ```
+
+3. **Generating a Manifest:**
+   ```csharp
+   var newManifest = ManifestGenerator.Create("MyApp", "1.0.0");
+   ManifestWriter.Write("path/to/manifest.json", newManifest);
+   ```
 
 ## Status
 
-Prototype – Pre-Release  
-Initial version intended for internal use or early adopters. APIs may change.
+**Prototype – Pre-Release**  
+This library is intended for internal use or early adopters. APIs may change in future versions.
 
 ## Contributing
 
-Bug reports, discussions, and feature suggestions are welcome!  
-Please see [CONTRIBUTING.md](./CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository.
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature-name
+   ```
+3. Commit your changes:
+   ```bash
+   git commit -m "Add feature name"
+   ```
+4. Push to your forked repository and create a pull request.
+
+For more details, see [CONTRIBUTING.md](./CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT – see [LICENSE](./LICENSE)
-
-## Resources
-
-- **Documentation**
-- **GitHub Issues**
+This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
-Streamline multilingual templates in .NET—fast, lightweight, and strongly typed.
+Streamline multilingual templates and manifests in .NET with **Zentient.Runtime.Manifest**—fast, lightweight, and strongly typed.
