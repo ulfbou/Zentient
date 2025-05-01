@@ -1,9 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<!-- Zentient.Runtime.Manifest.Abstractions -->
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
+		<!-- Target Frameworks -->
+		<TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
 
+		<!-- NuGet Package Metadata -->
+		<Description>A library for managing localized templates and runtime manifests in .NET applications.</Description>
+		<PackageTags>Manifest Localization Templates .NET</PackageTags>
+
+		<!-- Centralized Package Version Management -->
+		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+		<!-- Build Settings -->
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	</PropertyGroup>
 </Project>

@@ -1,20 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-	<ItemGroup>
-		<ProjectReference Include="..\Manifest.Abstractions\Zentient.Runtime.Manifest.Abstractions.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.4" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.4" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="9.0.4" />
-	</ItemGroup>
-
+﻿<!-- Zentient.Runtime.Manifest.Configuration -->
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
+		<!-- Target Frameworks -->
+		<TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+
+		<!-- NuGet Package Metadata -->
+		<Description>A library for managing localized templates and runtime manifests in .NET applications.</Description>
+		<PackageTags>Manifest Localization Templates .NET</PackageTags>
+
+		<!-- Centralized Package Version Management -->
+		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+		<!-- Build Settings -->
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<!-- Package References
+		<PackageReference Include="Microsoft.Extensions.Options" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+ -->
+
+		<!-- Project Reference -->
+		<ProjectReference Include="..\Manifest.Abstractions\Zentient.Runtime.Manifest.Abstractions.csproj" />
+	</ItemGroup>
 </Project>
