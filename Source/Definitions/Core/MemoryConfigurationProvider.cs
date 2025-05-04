@@ -1,4 +1,6 @@
-﻿// Zentient/Definitions/Core/MemoryConfigurationProvider.cs
+﻿// (C) 2025 Ulf Bourelius. All rights reserved.
+// MIT License. See LICENSE file in the project root for full license information.
+
 using Microsoft.Extensions.Configuration;
 
 namespace Zentient.Definitions.Core

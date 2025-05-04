@@ -1,4 +1,6 @@
-﻿// Zentient/Definitions/Core/DefinitionsOptions.cs
+﻿// (C) 2025 Ulf Bourelius. All rights reserved.
+// MIT License. See LICENSE file in the project root for full license information.
+
 using System;
 using System.Collections.Generic;
 using System.Runtime.Loader;
