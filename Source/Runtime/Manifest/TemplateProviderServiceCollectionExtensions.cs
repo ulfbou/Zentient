@@ -20,6 +20,7 @@ namespace Zentient.Runtime.Manifest
         {
             ArgumentNullException.ThrowIfNull(services, nameof(services));
             ArgumentNullException.ThrowIfNullOrEmpty(rootConfigKey, nameof(rootConfigKey));
+
             services.AddSingleton<ILocalizedValueProvider>(sp =>
                 new ConfigurationTemplateProvider(sp.GetRequiredService<IConfiguration>(), sp.GetRequiredService<ILogger<ConfigurationTemplateProvider>>(), rootConfigKey, enforcePlaceholderCount));
             return services;
@@ -35,9 +36,22 @@ namespace Zentient.Runtime.Manifest
         {
             ArgumentNullException.ThrowIfNull(services, nameof(services));
             ArgumentNullException.ThrowIfNull(configureOptions, nameof(configureOptions));
+
             var options = new ConfigurationTemplateProviderOptions();
             configureOptions?.Invoke(options);
             return services.AddTemplateProviderServices(options.RootConfigKey, options.EnforcePlaceholderCount);
+        }
+    }
+
+    internal static class ArgumentExtensions
+    {
+        public static void ThrowIfNullOrEmpty(string argument, string paramName)
+        {
+            ArgumentNullException.ThrowIfNull(argument, paramName);
+            if (argument.Length == 0)
+            {
+                throw new ArgumentException("The string cannot be empty.", paramName);
+            }
         }
     }
 }
