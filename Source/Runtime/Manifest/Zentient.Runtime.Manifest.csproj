@@ -1,8 +1,8 @@
-﻿<!-- Zentient.Runtime.Manifest -->
+﻿<!-- Zentient.Runtime.Manifest.csproj file for .NET projects -->
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<!-- Target Frameworks -->
-		<TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 
 		<!-- NuGet Package Metadata -->
 		<PackageId>Zentient.Runtime.Manifest</PackageId>
@@ -10,20 +10,55 @@
 		<PackageTags>Manifest Localization Templates .NET</PackageTags>
 
 		<!-- Centralized Package Version Management -->
-		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
 
 		<!-- Build Settings -->
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<!-- Package References 
-		<ProjectReference Include="Microsoft.Extensions.Configuration" />
-		<ProjectReference Include="Microsoft.Extensions.DependencyInjection" />
-		<ProjectReference Include="Microsoft.Extensions.Logging" />
-		-->
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
 
-		<!-- Project References -->
+		<!-- Package References for .Net 6 -->
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
+
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
+
+		<!-- Package References for .Net 7 -->
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
+
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+
+		<!-- Package References for .Net 8 -->
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+
+		<!-- Package References for .Net 9 -->
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.4" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.4" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="9.0.4" />
+
+	</ItemGroup>
+
+	<ItemGroup>
+
+		<!-- Project Reference -->
 		<ProjectReference Include="..\Manifest.Abstractions\Zentient.Runtime.Manifest.Abstractions.csproj" />
 		<ProjectReference Include="..\Manifest.Configuration\Zentient.Runtime.Manifest.Configuration.csproj" />
 	</ItemGroup>
