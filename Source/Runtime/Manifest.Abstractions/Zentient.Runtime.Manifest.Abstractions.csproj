@@ -1,4 +1,4 @@
-﻿<!-- Zentient.Runtime.Manifest.Abstractions -->
+﻿<!-- Zentient.Runtime.Manifest.Abstractions.csproj file for .NET projects -->
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<!-- Target Frameworks -->
@@ -7,9 +7,6 @@
 		<!-- NuGet Package Metadata -->
 		<Description>A library for managing localized templates and runtime manifests in .NET applications.</Description>
 		<PackageTags>Manifest Localization Templates .NET</PackageTags>
-
-		<!-- Centralized Package Version Management -->
-		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
 		<!-- Build Settings -->
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
