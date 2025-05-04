@@ -1,0 +1,44 @@
+name: Build and Package NuGet
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:9.0
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore "Zentient.Runtime.Manifest.Configuration/Zentient.Runtime.Manifest.Configuration.csproj"
+      
+    - name: Build projects
+      run: |
+        dotnet build -c Release "Zentient.Runtime.Manifest.Configuration/Zentient.Runtime.Manifest.Configuration.csproj"
+        dotnet build -c Release "Zentient.Runtime.Manifest.Abstractions/Zentient.Runtime.Manifest.Abstractions.csproj"
+        dotnet build -c Release "Zentient.Runtime.Manifest/Zentient.Runtime.Manifest.csproj"
+
+    - name: Package projects
+      run: |
+        dotnet pack -c Release "Zentient.Runtime.Manifest.Configuration/Zentient.Runtime.Manifest.Configuration.csproj" -o nupkgs
+        dotnet pack -c Release "Zentient.Runtime.Manifest.Abstractions/Zentient.Runtime.Manifest.Abstractions.csproj" -o nupkgs
+        dotnet pack -c Release "Zentient.Runtime.Manifest/Zentient.Runtime.Manifest.csproj" -o nupkgs
+
+    # - name: Upload NuGet packages
+    #   uses: actions/upload-artifact@v3
+    #   with:
+    #     name: nuget-packages
+    #     path: nupkgs
