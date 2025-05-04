@@ -15,10 +15,20 @@ using System.Runtime.Loader;
 
 namespace Zentient.Definitions.Extensions
 {
+    /// <summary>
+    /// Provides extension methods for configuring and registering definitions in the service collection.
+    /// </summary>
     public static class ServiceCollectionExtensions
     {
         private static readonly Dictionary<Type, ServiceDescriptor> _registeredServices = new Dictionary<Type, ServiceDescriptor>();
 
+        /// <summary>
+        /// Adds definitions to the service collection.
+        /// </summary>
+        /// <param name="services">The service collection to which definitions will be added.</param>
+        /// <param name="initialConfiguration">The initial configuration to use for definitions.</param>
+        /// <param name="configureBuilder">An action to configure the <see cref="DefinitionsLibraryBuilder"/>.</param>
+        /// <returns>The updated service collection.</returns>
         public static IServiceCollection AddDefinitions(this IServiceCollection services, IConfiguration initialConfiguration, Action<DefinitionsLibraryBuilder> configureBuilder)
         {
             var builder = new DefinitionsLibraryBuilder();
@@ -37,15 +47,11 @@ namespace Zentient.Definitions.Extensions
                 return loadContext;
             });
 
-            // Register a factory for IConfiguration that includes our override source
             services.AddSingleton<IConfiguration>(sp =>
             {
                 var configBuilder = new ConfigurationBuilder()
-                    .AddConfiguration(initialConfiguration) // Add the original configuration
-                    .Add(options.OverrideSourceFactory(options.ConfigurationOverrides)); // Add our override source
-
-                // You might need to re-add other sources here if they were not part of the initialConfiguration
-                // (e.g., environment variables if you want them to be lower priority than overrides)
+                    .AddConfiguration(initialConfiguration)
+                    .Add(options.OverrideSourceFactory(options.ConfigurationOverrides));
 
                 return configBuilder.Build();
             });
@@ -54,7 +60,7 @@ namespace Zentient.Definitions.Extensions
             var loadContext = serviceProvider.GetRequiredService<DefinitionsLoadContext>();
             var logger = serviceProvider.GetRequiredService<ILogger<DefinitionsLoadContext>>();
             var criticalModules = options.CriticalModules ?? Array.Empty<string>();
-            var currentConfiguration = serviceProvider.GetRequiredService<IConfiguration>(); // Get the configured IConfiguration
+            var currentConfiguration = serviceProvider.GetRequiredService<IConfiguration>();
 
             foreach (var assemblyPath in options.AssemblyPaths.Where(p => File.Exists(p) || Directory.Exists(p)))
             {
@@ -99,6 +105,15 @@ namespace Zentient.Definitions.Extensions
             return services;
         }
 
+        /// <summary>
+        /// Registers modules from the specified assembly into the service collection.
+        /// </summary>
+        /// <param name="services">The service collection to which modules will be registered.</param>
+        /// <param name="configuration">The configuration to use for module registration.</param>
+        /// <param name="assembly">The assembly containing the modules to register.</param>
+        /// <param name="logger">The logger instance for logging operations.</param>
+        /// <param name="criticalModules">An array of critical module names that must be loaded.</param>
+        /// <param name="versionCompatibility">The strategy for version compatibility.</param>
         private static void RegisterModules(IServiceCollection services, IConfiguration configuration, Assembly assembly, ILogger logger, string[] criticalModules, DefinitionsOptions.VersionCompatibilityStrategy versionCompatibility)
         {
             try

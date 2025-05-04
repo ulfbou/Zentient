@@ -14,18 +14,33 @@ using Zentient.Definitions.Core;
 
 namespace Zentient.Definitions.Loader
 {
+    /// <summary>
+    /// Provides a custom <see cref="AssemblyLoadContext"/> for loading assemblies from specified paths.
+    /// </summary>
     public class DefinitionsLoadContext : AssemblyLoadContext
     {
         private readonly string[] _assemblyPaths;
         private readonly ILogger<DefinitionsLoadContext> _logger;
         private readonly Dictionary<string, Assembly> _assemblyCache = new Dictionary<string, Assembly>();
 
-        public DefinitionsLoadContext(string loadContextName, string[] assemblyPaths, ILogger<DefinitionsLoadContext> logger) : base(loadContextName, isCollectible: true)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DefinitionsLoadContext"/> class.
+        /// </summary>
+        /// <param name="loadContextName">The name of the load context.</param>
+        /// <param name="assemblyPaths">The paths to search for assemblies.</param>
+        /// <param name="logger">The logger instance for logging operations.</param>
+        public DefinitionsLoadContext(string loadContextName, string[] assemblyPaths, ILogger<DefinitionsLoadContext> logger)
+            : base(loadContextName, isCollectible: true)
         {
             _assemblyPaths = assemblyPaths ?? Array.Empty<string>();
             _logger = logger;
         }
 
+        /// <summary>
+        /// Loads an assembly by its name.
+        /// </summary>
+        /// <param name="assemblyName">The name of the assembly to load.</param>
+        /// <returns>The loaded assembly, or <c>null</c> if the assembly could not be found or loaded.</returns>
         protected override Assembly Load(AssemblyName assemblyName)
         {
             if (_assemblyCache.TryGetValue(assemblyName.FullName, out var cachedAssembly))
@@ -67,13 +82,11 @@ namespace Zentient.Definitions.Loader
                         {
                             _logger.LogInformation($"Loaded assembly '{assemblyName.FullName}' from '{assemblyPath}'.");
                             _assemblyCache[assemblyName.FullName] = assembly;
-                            // TODO: Implement strong-name and Authenticode validation here (in a later refinement)
                             return assembly;
                         }
                         else if (assembly != null)
                         {
                             _logger.LogWarning($"Loaded assembly at '{assemblyPath}' with name '{assembly.GetName().FullName}' does not match requested name '{assemblyName.FullName}'.");
-                            // Don't cache if the name doesn't match the request.
                         }
                     }
                     catch (FileLoadException ex)
@@ -95,12 +108,18 @@ namespace Zentient.Definitions.Loader
             return null!;
         }
 
+        /// <summary>
+        /// Loads an assembly from a specified file path.
+        /// </summary>
+        /// <param name="assemblyPath">The file path of the assembly to load.</param>
+        /// <returns>The loaded assembly.</returns>
         public new Assembly LoadFromAssemblyPath(string assemblyPath)
         {
             var assemblyName = AssemblyName.GetAssemblyName(assemblyPath);
             return LoadFromAssemblyPathInternal(assemblyPath, assemblyName);
         }
 
+        // Loads an assembly from a specified file path with an optional assembly name hint.
         private Assembly LoadFromAssemblyPathInternal(string assemblyPath, AssemblyName assemblyNameHint = null!)
         {
             if (assemblyNameHint != null && _assemblyCache.TryGetValue(assemblyNameHint.FullName, out var cachedAssembly))
@@ -121,7 +140,7 @@ namespace Zentient.Definitions.Loader
             catch (Exception ex)
             {
                 _logger.LogError($"Error loading assembly from path '{assemblyPath}': {ex.Message}");
-                throw; // Re-throw to be caught by the caller
+                throw;
             }
         }
     }
