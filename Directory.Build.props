@@ -1,7 +1,6 @@
-<!-- Directory.Build.props -->
+<!-- Directory.Build.props file for .NET projects -->
 <Project>
 	<PropertyGroup>
-		<!-- Common Metadata -->
 		<Authors>Ulf Bourelius</Authors>
 		<Company>Zentient</Company>
 		<Copyright>Copyright © 2025 Ulf Bourelius</Copyright>
@@ -9,16 +8,15 @@
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://your-project-url</PackageProjectUrl>
+		<PackageVersion>0.1.0</PackageVersion>
 
-		<!-- Build Settings -->
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 
-		<!-- Debug and Release Configurations -->
 		<DebugType Condition="'$(Configuration)' == 'Debug'">portable</DebugType>
 		<DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
+		<Optimize Condition="'$(Configuration)' == 'Debug'">true</Optimize>
 		<Optimize Condition="'$(Configuration)' == 'Release'">true</Optimize>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
 		<DebugSymbols Condition="'$(Configuration)' == 'Debug'">true</DebugSymbols>
@@ -26,24 +24,29 @@
 		<DefineConstants Condition="'$(Configuration)' == 'Debug'">DEBUG;TRACE</DefineConstants>
 		<DefineConstants Condition="'$(Configuration)' == 'Release'">TRACE</DefineConstants>
 
-		<!-- Centralized Package Version Management -->
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageVersion Include="Microsoft.Extensions.Configuration" Version="[6.0.0,)" Condition="'$(TargetFramework)' == 'net6.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Configuration" Version="[7.0.0,)" Condition="'$(TargetFramework)' == 'net7.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Configuration" Version="[8.0.0,)" Condition="'$(TargetFramework)' == 'net8.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Configuration" Version="[9.0.0,)" Condition="'$(TargetFramework)' == 'net9.0'" />
-
-		<PackageVersion Include="Microsoft.Extensions.Logging" Version="[6.0.0,)" Condition="'$(TargetFramework)' == 'net6.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Logging" Version="[7.0.0,)" Condition="'$(TargetFramework)' == 'net7.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Logging" Version="[8.0.0,)" Condition="'$(TargetFramework)' == 'net8.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Logging" Version="[9.0.0,)" Condition="'$(TargetFramework)' == 'net9.0'" />
-
-		<PackageVersion Include="Microsoft.Extensions.Options" Version="[6.0.0,)" Condition="'$(TargetFramework)' == 'net6.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Options" Version="[7.0.0,)" Condition="'$(TargetFramework)' == 'net7.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Options" Version="[8.0.0,)" Condition="'$(TargetFramework)' == 'net8.0'" />
-		<PackageVersion Include="Microsoft.Extensions.Options" Version="[9.0.0,)" Condition="'$(TargetFramework)' == 'net9.0'" />
-	</ItemGroup>
 </Project>
+<!--
+<ItemGroup>
+	<PackageVersion Include="Microsoft.Extensions.Configuration" Condition="'$(TargetFramework)' == 'net6.0'" Version="6.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Condition="'$(TargetFramework)' == 'net6.0'" Version="6.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.Logging" Condition="'$(TargetFramework)' == 'net6.0'" Version="6.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.Options" Condition="'$(TargetFramework)' == 'net6.0'" Version="6.0.0" />
+
+	<PackageVersion Include="Microsoft.Extensions.Configuration" Condition="'$(TargetFramework)' == 'net7.0'" Version="7.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Condition="'$(TargetFramework)' == 'net7.0'" Version="7.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.Logging" Condition="'$(TargetFramework)' == 'net7.0'" Version="7.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.Options" Condition="'$(TargetFramework)' == 'net7.0'" Version="7.0.0" />
+
+	<PackageVersion Include="Microsoft.Extensions.Configuration" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.1" />
+	<PackageVersion Include="Microsoft.Extensions.Logging" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.1" />
+	<PackageVersion Include="Microsoft.Extensions.Options" Condition="'$(TargetFramework)' == 'net8.0'" Version="8.0.2" />
+
+	<PackageVersion Include="Microsoft.Extensions.Configuration" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.4" />
+	<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.4" />
+	<PackageVersion Include="Microsoft.Extensions.Logging" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.4" />
+	<PackageVersion Include="Microsoft.Extensions.Options" Condition="'$(TargetFramework)' == 'net9.0'" Version="9.0.4" />
+</ItemGroup>
+-->
