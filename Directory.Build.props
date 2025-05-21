@@ -27,7 +27,7 @@
 		<DefineConstants Condition="'$(Configuration)' == 'Release'">TRACE</DefineConstants>
 
 		<!-- Centralized Package Version Management -->
-		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
 	</PropertyGroup>
 
 	<ItemGroup>
