@@ -16,31 +16,40 @@ namespace Zentient.Results
     public readonly struct Result : IResult
     {
         [DataMember(Order = 2)]
+        [JsonIgnore]
         private readonly ErrorInfo[] _errors;
 
         [DataMember(Order = 3)]
+        [JsonIgnore]
         private readonly string[] _messages;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public bool IsSuccess =>
             (Status.Code >= 200 && Status.Code < 300) && _errors.Length == 0;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public bool IsFailure => !IsSuccess;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public IReadOnlyList<ErrorInfo> Errors => _errors;
 
         /// <inheritdoc />
+        [JsonPropertyName("messages")]
         public IReadOnlyList<string> Messages => _messages;
 
+        [JsonIgnore]
         private readonly Lazy<string?> _firstError;
 
         /// <inheritdoc />
+        [JsonPropertyName("error")]
         public string? Error => _firstError.Value;
 
         /// <inheritdoc />
         [DataMember(Order = 4)]
+        [JsonPropertyName("status")]
         public IResultStatus Status { get; }
 
         /// <summary>Initializes a new instance of the <see cref="Result"/> struct.</summary>
@@ -48,10 +57,10 @@ namespace Zentient.Results
         /// <param name="messages">Optional informational messages.</param>
         /// <param name="errors">Optional error information.</param>
         [JsonConstructor]
-        private Result(
+        internal Result(
             IResultStatus status,
-            IEnumerable<string>? messages = null,
-            IEnumerable<ErrorInfo>? errors = null)
+            IEnumerable<string>? messages = null, // Parameter name 'messages' matches JsonPropertyName
+            IEnumerable<ErrorInfo>? errors = null)   // Parameter name 'errors' matches JsonPropertyName
         {
             Status = status;
             _errors = errors is null ? Array.Empty<ErrorInfo>() : errors as ErrorInfo[] ?? errors.ToArray();
@@ -83,8 +92,11 @@ namespace Zentient.Results
         /// <summary>Creates a failure result from a single error.</summary>
         /// <param name="error">The error information.</param>
         /// <param name="status">Optional custom status. Defaults to <see cref="ResultStatuses.BadRequest"/>.</param>
-        public static IResult Failure(ErrorInfo error, IResultStatus? status = null) =>
-            new Result(status ?? ResultStatuses.BadRequest, null, new[] { error });
+        public static IResult Failure(ErrorInfo error, IResultStatus? status = null)
+        {
+            Guard.AgainstDefault(error, nameof(error));
+            return new Result(status ?? ResultStatuses.BadRequest, null, new[] { error });
+        }
 
         /// <summary>Creates a failure result from a collection of errors.</summary>
         /// <param name="errors">A collection of error information.</param>
