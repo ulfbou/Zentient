@@ -400,3 +400,5 @@ FodyWeavers.xsd
 *.sln.iml
 /Source/diff
 /diff
+*.#diff
+/Source/Results/diff
