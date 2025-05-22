@@ -3,12 +3,11 @@
 	<PropertyGroup>
 		<!-- Common Metadata -->
 		<Authors>Ulf Bourelius</Authors>
-		<Company>Zentient</Company>
 		<Copyright>Copyright © 2025 Ulf Bourelius</Copyright>
 		<RepositoryUrl>https://github.com/your-repo</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageProjectUrl>https://your-project-url</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/ulfbou/Zentient</PackageProjectUrl>
 
 		<!-- Build Settings -->
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
