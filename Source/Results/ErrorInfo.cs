@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Zentient.Results
 {
@@ -10,22 +11,32 @@ namespace Zentient.Results
     {
         /// <summary>Gets the category of the error.</summary>
         [DataMember(Order = 1)]
+        [JsonPropertyName("category")]
+        [JsonInclude]
         public ErrorCategory Category { get; }
 
         /// <summary>Gets a specific code for the error (e.g., "USER-001", "EMAIL_INVALID").</summary>
         [DataMember(Order = 2)]
+        [JsonPropertyName("code")]
+        [JsonInclude]
         public string Code { get; }
 
         /// <summary>Gets a human-readable message describing the error.</summary>
         [DataMember(Order = 3)]
+        [JsonPropertyName("message")]
+        [JsonInclude]
         public string Message { get; }
 
         /// <summary>Gets optional, additional data related to the error (e.g., property name for validation errors).</summary>
         [DataMember(Order = 4)]
+        [JsonPropertyName("data")]
+        [JsonInclude]
         public object? Data { get; }
 
         /// <summary>Gets a list of inner errors, useful for hierarchical error reporting (e.g., aggregated validation errors).</summary>
         [DataMember(Order = 5)]
+        [JsonPropertyName("innerErrors")]
+        [JsonInclude]
         public IReadOnlyList<ErrorInfo> InnerErrors { get; }
 
         /// <summary>
@@ -36,18 +47,19 @@ namespace Zentient.Results
         /// <param name="message">A human-readable message describing the error.</param>
         /// <param name="data">Optional, additional data related to the error.</param>
         /// <param name="innerErrors">A collection of inner errors.</param>
+        [JsonConstructor]
         public ErrorInfo(
-            ErrorCategory category,
-            string code,
-            string message,
-            object? data = null,
-            IEnumerable<ErrorInfo>? innerErrors = null)
+            ErrorCategory Category,
+            string Code,
+            string Message,
+            object? Data = null,
+            IEnumerable<ErrorInfo>? InnerErrors = null)
         {
-            Category = category;
-            Code = code;
-            Message = message;
-            Data = data;
-            InnerErrors = innerErrors?.ToArray() ?? Array.Empty<ErrorInfo>();
+            this.Category = Category;
+            this.Code = Code;
+            this.Message = Message;
+            this.Data = Data;
+            this.InnerErrors = InnerErrors?.ToArray() ?? Array.Empty<ErrorInfo>();
         }
 
         /// <summary>
