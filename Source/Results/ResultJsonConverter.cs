@@ -77,7 +77,7 @@ namespace Zentient.Results
                     if (reader.TokenType == JsonTokenType.PropertyName)
                     {
                         string propertyName = reader.GetString()!;
-                        reader.Read(); // Move to property value
+                        reader.Read();
 
                         switch (propertyName)
                         {
@@ -90,7 +90,6 @@ namespace Zentient.Results
                             case nameof(IResult.Messages):
                                 messages = JsonSerializer.Deserialize<List<string>>(ref reader, _options);
                                 break;
-                                // IsSuccess, IsFailure, Error are derived properties, no need to deserialize
                         }
                     }
                 }
@@ -103,8 +102,12 @@ namespace Zentient.Results
                     errors ??= new List<ErrorInfo> { new ErrorInfo(ErrorCategory.General, "DeserializationError", "Could not determine result status during deserialization.") };
                 }
 
-                return new Result(status, messages, errors);
+                return (Result)(IsSuccess(status, errors)
+                    ? Result.Success(status, messages?.FirstOrDefault())
+                    : Result.Failure(errors!, status));
             }
+
+            private bool IsSuccess(IResultStatus status, List<ErrorInfo>? errors) => (errors is null || errors.Count == 0) && status.Code < 300;
 
             public override void Write(Utf8JsonWriter writer, Result value, JsonSerializerOptions options)
             {

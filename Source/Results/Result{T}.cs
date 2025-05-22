@@ -50,7 +50,7 @@ namespace Zentient.Results
         /// <param name="status">The status of the result.</param>
         /// <param name="messages">Optional informational messages.</param>
         /// <param name="errors">Optional error information.</param>
-        [JsonConstructor] // Hint for System.Text.Json
+        [JsonConstructor]
         public Result(
             T? value,
             IResultStatus status,

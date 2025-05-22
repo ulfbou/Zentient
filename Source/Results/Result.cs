@@ -9,9 +9,10 @@ namespace Zentient.Results
     /// <summary>
     /// Represents the outcome of an operation without a return value.
     /// It can be a success with optional messages or a failure with errors.
+    /// Provides static factory methods for creating common <see cref="ErrorResult"/> instances.
     /// </summary>
     [DataContract]
-    [JsonConverter(typeof(ResultJsonConverter))] // For System.Text.Json support
+    [JsonConverter(typeof(ResultJsonConverter))]
     public readonly struct Result : IResult
     {
         [DataMember(Order = 2)]
@@ -47,7 +48,7 @@ namespace Zentient.Results
         /// <param name="messages">Optional informational messages.</param>
         /// <param name="errors">Optional error information.</param>
         [JsonConstructor]
-        public Result(
+        private Result(
             IResultStatus status,
             IEnumerable<string>? messages = null,
             IEnumerable<ErrorInfo>? errors = null)
@@ -66,8 +67,8 @@ namespace Zentient.Results
 
         /// <summary>Creates a successful result.</summary>
         /// <param name="message">An optional success message.</param>
-        public static IResult Success(string? message = null) =>
-            new Result(ResultStatuses.Success, !string.IsNullOrWhiteSpace(message) ? new[] { message! } : null);
+        public static IResult Success(IResultStatus? status = null, string? message = null) =>
+            new Result(status ?? ResultStatuses.Success, !string.IsNullOrWhiteSpace(message) ? new[] { message! } : null);
 
         /// <summary>Creates a successful result with a "Created" status.</summary>
         /// <param name="message">An optional success message.</param>
@@ -217,7 +218,6 @@ namespace Zentient.Results
         /// <param name="status">Optional custom status. Defaults to <see cref="ResultStatuses.Error"/>.</param>
         public static IResult<T> FromException<T>(Exception ex, IResultStatus? status = null) =>
             Result<T>.Failure(default, new ErrorInfo(ErrorCategory.Exception, ex.GetType().Name, ex.Message, ex), status ?? ResultStatuses.Error);
-
 
         /// <inheritdoc />
         public override string ToString()
