@@ -1,13 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Version>0.1.0</Version>
+		<Description>A lightweight, robust and flexible result object for .NET 9, providing a standardized way to represent the outcome of operations, whether successful or not.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/ulfbou/Zentient</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/ulfbou/Zentient.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>dotnet;net9;results;functional-programming;error-handling;zentient</PackageTags>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Utilities\Zentient.Utilities.csproj" />
-  </ItemGroup>
+		<AssemblyTitle>Zentient.Results</AssemblyTitle>
+		<AssemblyName>Zentient.Results</AssemblyName>
+		<AssemblyVersion>0.1.0.0</AssemblyVersion>
+		<FileVersion>0.1.0.0</FileVersion>
+		<InformationalVersion>0.1.0</InformationalVersion>
+		<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Utilities\Zentient.Utilities.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
 
 </Project>
