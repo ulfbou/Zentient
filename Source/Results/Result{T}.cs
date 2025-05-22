@@ -14,33 +14,44 @@ namespace Zentient.Results
     {
         /// <inheritdoc />
         [DataMember(Order = 1)]
+        [JsonPropertyName("value")]
         public T? Value { get; }
 
         [DataMember(Order = 2)]
+        [JsonIgnore]
         private readonly ErrorInfo[] _errors;
 
         [DataMember(Order = 3)]
+        [JsonIgnore]
         private readonly string[] _messages;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public bool IsSuccess =>
             (Status.Code >= 200 && Status.Code < 300) && _errors.Length == 0;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public bool IsFailure => !IsSuccess;
 
         /// <inheritdoc />
+        [JsonPropertyName("errors")]
         public IReadOnlyList<ErrorInfo> Errors => _errors;
 
         /// <inheritdoc />
+        [JsonPropertyName("messages")]
         public IReadOnlyList<string> Messages => _messages;
 
+        [JsonIgnore]
         private readonly Lazy<string?> _firstError;
+
         /// <inheritdoc />
+        [JsonIgnore]
         public string? Error => _firstError.Value;
 
         /// <inheritdoc />
         [DataMember(Order = 4)]
+        [JsonPropertyName("status")]
         public IResultStatus Status { get; }
 
         /// <summary>
@@ -51,11 +62,11 @@ namespace Zentient.Results
         /// <param name="messages">Optional informational messages.</param>
         /// <param name="errors">Optional error information.</param>
         [JsonConstructor]
-        public Result(
-            T? value,
+        internal Result(
+            T? value,             // Parameter name 'value' matches JsonPropertyName
             IResultStatus status,
-            IEnumerable<string>? messages = null,
-            IEnumerable<ErrorInfo>? errors = null)
+            IEnumerable<string>? messages = null, // Parameter name 'messages' matches JsonPropertyName
+            IEnumerable<ErrorInfo>? errors = null)   // Parameter name 'errors' matches JsonPropertyName
         {
             Value = value;
             Status = status;
