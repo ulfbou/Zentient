@@ -19,6 +19,21 @@
         Conflict,
         /// <summary>An unhandled exception occurred.</summary>
         Exception,
+
+        /// <summary>An error related to a network issue.</summary>
+        Network,
+
+        /// <summary>An error related to a database operation.</summary>
+        Database,
+
+        /// <summary>A timeout error occurred.</summary>
+        Timeout,
+
+        /// <summary>An error related to a security issue.</summary>
+        Security,
+
+        /// <summary>An error related to a request (e.g., malformed request).</summary>
+        Request,
         // Add more common categories as needed (e.g., Network, Database, Timeout)
     }
 }
