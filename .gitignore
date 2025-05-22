@@ -402,3 +402,6 @@ FodyWeavers.xsd
 /diff
 *.#diff
 /Source/Results/diff
+/Source/#diff#
+*.env
+/Source/Utilities/diff
