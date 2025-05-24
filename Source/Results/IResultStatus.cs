@@ -5,10 +5,10 @@
     /// </summary>
     public interface IResultStatus
     {
-        /// <summary>Gets the numerical code for the result status.</summary>
+        /// <summary>Gets the integer code representing the status (e.g., 200, 400, 404).</summary>
         int Code { get; }
 
-        /// <summary>Gets a human-readable description for the result status.</summary>
+        /// <summary>Gets a human-readable description for the result status (e.g., "OK", "Bad Request", "Not Found").</summary>
         string Description { get; }
     }
 }
