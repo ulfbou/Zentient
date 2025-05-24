@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 
 using System.Diagnostics;
+using System.Net;
 using System.Net.Mime;
 
 namespace Zentient.Results.AspNetCore
@@ -147,6 +148,32 @@ namespace Zentient.Results.AspNetCore
                 Errors = errors;
                 TraceId = Activity.Current?.Id ?? string.Empty;
             }
+        }
+        /// <summary>
+        /// Gets the most appropriate HTTP status code based on the result's error categories.
+        /// Defaults to 500 Internal Server Error if no specific category matches.
+        /// </summary>
+        /// <param name="result">The IResult instance.</param>
+        /// <returns>An HttpStatusCode value.</returns>
+        public static HttpStatusCode ToHttpStatusCode(this IResult result)
+        {
+            if (result.IsSuccess) return HttpStatusCode.OK;
+
+            var firstErrorCategory = result.Errors?.FirstOrDefault().Category;
+
+            return firstErrorCategory switch
+            {
+                ErrorCategory.NotFound => HttpStatusCode.NotFound,
+                ErrorCategory.Validation => HttpStatusCode.BadRequest,
+                ErrorCategory.Conflict => HttpStatusCode.Conflict,
+                ErrorCategory.Unauthorized => HttpStatusCode.Unauthorized,
+                ErrorCategory.Forbidden => HttpStatusCode.Forbidden,
+                ErrorCategory.Authentication => HttpStatusCode.Unauthorized,
+                ErrorCategory.Concurrency => HttpStatusCode.Conflict,
+                ErrorCategory.TooManyRequests => (HttpStatusCode)429,
+                ErrorCategory.ExternalService => HttpStatusCode.ServiceUnavailable,
+                _ => HttpStatusCode.InternalServerError
+            };
         }
     }
 }
