@@ -163,7 +163,7 @@ namespace Zentient.Results
 					}
 				}
 
-				return new DefaultResultStatus(code, description ?? string.Empty);
+				return new ResultStatus(code, description ?? string.Empty);
 			}
 
 			private List<ErrorInfo>? DeserializeErrorInfoList(ref Utf8JsonReader reader, JsonSerializerOptions options)
@@ -390,7 +390,7 @@ namespace Zentient.Results
 					}
 				}
 
-				return new DefaultResultStatus(code, description ?? string.Empty);
+				return new ResultStatus(code, description ?? string.Empty);
 			}
 
 			private List<ErrorInfo>? DeserializeErrorInfoList(ref Utf8JsonReader reader, JsonSerializerOptions options)
