@@ -6,7 +6,7 @@ A robust and flexible result object for .NET 9, providing a standardized way to 
 
 ## Overview
 
-`Zentient.Results` introduces the `IResult` and `IResult<T>` interfaces, along with concrete `Result` and `Result<T>` structs. These structures allow you to encapsulate the outcome of a function or operation, including:
+`Zentient.Results` introduces the `IResult` and `IResult<TValue>` interfaces, along with concrete `Result` and `Result<T>` structs. These structures allow you to encapsulate the outcome of a function or operation, including:
 
 * **Success or Failure:** Clearly indicates whether the operation succeeded.
 * **Value (Generic Result):** Holds the result of a successful operation.
