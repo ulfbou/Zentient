@@ -9,8 +9,8 @@
             public const int Ok = 200;
             public const int Created = 201;
             public const int Accepted = 202;
-            public const int Content = 204;
-            public const int Request = 400;
+            public const int NoContent = 204;
+            public const int BadRequest = 400;
             public const int Unauthorized = 401;
             public const int PaymentRequired = 402;
             public const int Forbidden = 403;
@@ -31,10 +31,11 @@
         /// </summary>
         internal static class Description
         {
+            public const string Ok = "OK";
             public const string Created = "Created";
             public const string Accepted = "Accepted";
-            public const string Content = "Content";
-            public const string Request = "Request";
+            public const string NoContent = "No Content";
+            public const string BadRequest = "Bad Request";
             public const string Unauthorized = "Unauthorized";
             public const string PaymentRequired = "Payment Required";
             public const string Forbidden = "Forbidden";
@@ -45,7 +46,7 @@
             public const string PreconditionFailed = "Precondition Failed";
             public const string UnprocessableEntity = "Unprocessable Entity";
             public const string TooManyRequests = "Too Many Requests";
-            public const string Error = "Error";
+            public const string InternalServerError = "Error";
             public const string NotImplemented = "Not Implemented";
             public const string ServiceUnavailable = "Service Unavailable";
         }
