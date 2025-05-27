@@ -5,6 +5,7 @@
     /// </summary>
     public static class ResultStatuses
     {
+        private static readonly IDictionary<int, IResultStatus> _statuses;
         public static readonly IResultStatus Success = new ResultStatus(Constants.Code.Ok, Constants.Description.Ok);
         public static readonly IResultStatus Created = new ResultStatus(Constants.Code.Created, Constants.Description.Created); // 201
         public static readonly IResultStatus Accepted = new ResultStatus(Constants.Code.Accepted, Constants.Description.Accepted); // 202
@@ -25,5 +26,53 @@
         public static readonly IResultStatus Error = new ResultStatus(Constants.Code.InternalServerError, Constants.Description.InternalServerError); // 500
         public static readonly IResultStatus NotImplemented = new ResultStatus(Constants.Code.NotImplemented, Constants.Description.NotImplemented); // 501
         public static readonly IResultStatus ServiceUnavailable = new ResultStatus(Constants.Code.ServiceUnavailable, Constants.Description.ServiceUnavailable); // 503
+
+        static ResultStatuses()
+        {
+            _statuses = new Dictionary<int, IResultStatus>
+              {
+                { Constants.Code.Ok, Success },
+                { Constants.Code.Created, Created },
+                { Constants.Code.Accepted, Accepted },
+                { Constants.Code.NoContent, NoContent },
+                { Constants.Code.BadRequest, BadRequest },
+                { Constants.Code.Unauthorized, Unauthorized },
+                { Constants.Code.PaymentRequired, PaymentRequired },
+                { Constants.Code.Forbidden, Forbidden },
+                { Constants.Code.NotFound, NotFound },
+                { Constants.Code.MethodNotAllowed, MethodNotAllowed },
+                { Constants.Code.Conflict, Conflict },
+                { Constants.Code.Gone, Gone },
+                { Constants.Code.PreconditionFailed, PreconditionFailed },
+                { Constants.Code.UnprocessableEntity, UnprocessableEntity },
+                { Constants.Code.TooManyRequests, TooManyRequests },
+                { Constants.Code.InternalServerError, Error },
+                { Constants.Code.NotImplemented, NotImplemented },
+                { Constants.Code.ServiceUnavailable, ServiceUnavailable }
+            };
+        }
+
+        public static IResultStatus GetStatus(int code, string? description = null)
+        {
+            if (!_statuses.ContainsKey(code))
+            {
+                _statuses.TryAdd(code, new CustomResultStatus(code, description ?? $"Custom code: {code}"));
+            }
+
+            return _statuses[code];
+        }
+
+        // Helper for custom status if not found in ResultStatuses
+        private sealed class CustomResultStatus : IResultStatus
+        {
+            public int Code { get; }
+            public string Description { get; }
+
+            public CustomResultStatus(int code, string description)
+            {
+                Code = code;
+                Description = description;
+            }
+        }
     }
 }
