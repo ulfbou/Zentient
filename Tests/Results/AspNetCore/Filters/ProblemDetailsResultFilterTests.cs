@@ -1,35 +1,44 @@
 ﻿using System.Net;
 using System.Threading.Tasks;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Options;
+
 using Moq;
+
+using Xunit;
 using Zentient.Results;
 using Zentient.Results.AspNetCore.Filters;
-using Xunit;
+using Zentient.Results.AspNetCore.Configuration;
+
+using static Zentient.Results.Tests.Helpers.AspNetCoreHelpers;
 
 namespace Zentient.Results.Tests.AspNetCore.Filters
 {
+    /// <summary>
+    /// Unit tests for <see cref="ProblemDetailsResultFilter"/> to ensure it correctly converts
+    /// <see cref="Zentient.Results.IResult"/> and <see cref="Zentient.Results.IResult{T}"/>
+    /// returned from controller actions into appropriate
+    /// <see cref="IActionResult"/> types, including <see cref="ProblemDetails"/> and
+    /// <see cref="ValidationProblemDetails"/> responses.
+    /// These tests verify that the filter handles both synchronous and asynchronous results,
+    /// and that it correctly generates problem details for validation failures and generic errors.
+    /// </summary>
     public class ProblemDetailsResultFilterTests
     {
-        private static ProblemDetailsResultFilter CreateFilter(
-            ProblemDetailsFactory? factory = null)
-        {
-            var pdFactory = factory ?? new DefaultProblemDetailsFactory(
-                Options.Create(new Microsoft.AspNetCore.Mvc.ApiBehaviorOptions()),
-                Options.Create(new ProblemDetailsOptions()));
-            var options = Options.Create(new ProblemDetailsOptions());
-            return new ProblemDetailsResultFilter(pdFactory, options);
-        }
+        public const string ProblemTypeUri = "https://example.com/errors/";
 
         [Fact]
         public void Ctor_Throws_If_ProblemDetailsFactory_Null()
         {
             var options = Options.Create(new ProblemDetailsOptions());
-            Assert.Throws<ArgumentNullException>(() => new ProblemDetailsResultFilter(null!, options));
+            var zentientOptions = Options.Create(new ZentientProblemDetailsOptions { ProblemTypeBaseUri = ProblemTypeUri });
+            Assert.Throws<ArgumentNullException>(() => new ProblemDetailsResultFilter(null!, options, zentientOptions));
         }
 
         [Fact]
@@ -43,7 +52,7 @@ namespace Zentient.Results.Tests.AspNetCore.Filters
                 new ActionContext(httpContext, new Microsoft.AspNetCore.Routing.RouteData(), new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),
                 new List<IFilterMetadata>(),
                 objectResult,
-                controller: null
+                controller: null!
             );
             var filter = CreateFilter();
             var nextCalled = false;
@@ -73,7 +82,7 @@ namespace Zentient.Results.Tests.AspNetCore.Filters
                 new ActionContext(httpContext, new Microsoft.AspNetCore.Routing.RouteData(), new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),
                 new List<IFilterMetadata>(),
                 objectResult,
-                controller: null
+                controller: null!
             );
             var filter = CreateFilter();
             var nextCalled = false;

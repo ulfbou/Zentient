@@ -1,79 +1,305 @@
 ﻿using System.Net;
-using FluentAssertions;
-using Zentient.Results;
-using Zentient.Results.AspNetCore;
-using Xunit;
 using System.Net.Http;
+
+using FluentAssertions;
+
 using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Moq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-
-// using model binding and validation namespaces
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+
+using Moq;
+
+using Xunit;
+
+using Zentient.Results;
+using Zentient.Results.AspNetCore;
+using Zentient.Results.Tests.Helpers;
+
+using static Zentient.Results.Tests.Helpers.AspNetCoreHelpers;
+using Zentient.Results.Tests.AspNetCore.Filters;
 
 namespace Zentient.Results.Tests.AspNetCore
 {
+    /// <summary>
+    /// Unit tests for <see cref="ProblemDetailsExtensions"/> to ensure correct conversion of
+    /// Zentient Results to <see cref="ProblemDetails"/> and <see cref="ValidationProblemDetails"/>.
+    /// These tests cover various scenarios including successful results, validation errors,
+    /// database errors, and undefined error categories.
+    /// They also verify that the correct HTTP status codes and problem types are generated,
+    /// and that the extensions are populated correctly.
+    /// </summary>
     public class ProblemDetailsExtensionsTests
     {
-        private static ProblemDetailsFactory CreateFactory()
+        private const string ProblemTypeUri = ProblemDetailsExtensions.DefaultProblemTypeBaseUri;
+
+        [Fact]
+        public void ToProblemDetails_ThrowsInvalidOperationException_For_SuccessResult()
         {
-            var mock = new Mock<ProblemDetailsFactory>();
-            mock.Setup(f => f.CreateProblemDetails(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<int?>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>()))
-                .Returns<HttpContext, int?, string, string, string, string>((ctx, status, title, type, detail, instance) =>
-                    new ProblemDetails
-                    {
-                        Status = status,
-                        Title = title,
-                        Type = type,
-                        Detail = detail,
-                        Instance = instance
-                    });
+            // Arrange
+            var result = new SuccessResultStub(new ResultStatusStub(200, "OK"));
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
 
-            mock.Setup(f => f.CreateValidationProblemDetails(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<ModelStateDictionary>(),
-                    It.IsAny<int?>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>()))
-                .Returns((HttpContext ctx, ModelStateDictionary ms, int? status, string title, string type, string detail, string instance) =>
-                    new ValidationProblemDetails(ms)
-                    {
-                        Status = status,
-                        Title = title,
-                        Type = type,
-                        Detail = detail,
-                        Instance = instance
-                    });
+            // Act
+            Action act = () => result.ToProblemDetails(factory, context, ProblemTypeUri);
 
-            return mock.Object;
+            // Assert
+            act.Should().Throw<InvalidOperationException>()
+               .WithMessage("Cannot convert a successful result to ProblemDetails. ProblemDetails are for failure results only.");
         }
 
-        private static HttpContext CreateHttpContext(string path = "/test")
+        [Fact]
+        public void ToProblemDetails_Creates_ValidationProblemDetails_For_ValidationErrorWithCode()
         {
-            var context = new DefaultHttpContext();
-            context.Request.Path = path;
-            return context;
+            // Arrange
+            var error = new ErrorInfo(ErrorCategory.Validation, "VAL-001", "Field 'Name' is required.", "Name");
+            var result = new FailureResultStub(
+                new[] { error },
+                "Validation failed for one or more fields.",
+                new ResultStatusStub(400, "Bad Request")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
+
+            // Assert
+            pd.Should().BeOfType<ValidationProblemDetails>();
+            pd.Status.Should().Be(400);
+            pd.Title.Should().Be("Bad Request");
+            pd.Detail.Should().Be("Validation failed for one or more fields.");
+            pd.Instance.Should().Be("/test");
+            pd.Type.Should().Be(ProblemTypeUri + "validation");
+
+            var validationPd = (ValidationProblemDetails)pd;
+            validationPd.Errors.Should().ContainKey("Name");
+            validationPd.Errors["Name"].Should().ContainSingle().Which.Should().Be("Field 'Name' is required.");
+
+            pd.Extensions.Should().ContainKey("zentientErrors");
+            var zentientErrors = pd.Extensions["zentientErrors"] as IEnumerable<object>;
+            zentientErrors.Should().NotBeNull().And.ContainSingle();
+            var errorObject = zentientErrors.First().Should().BeAssignableTo<Dictionary<string, object?>>().Subject;
+            errorObject["category"].Should().Be("validation");
+            errorObject["code"].Should().Be("VAL-001");
+            errorObject["message"].Should().Be("Field 'Name' is required.");
+            errorObject["data"].Should().Be("Name");
+        }
+
+        [Fact]
+        public void ToProblemDetails_Creates_ValidationProblemDetails_For_ValidationErrorWithoutCode_UsesCategory()
+        {
+            // Arrange
+            var error = new ErrorInfo(ErrorCategory.Validation, "", "Invalid input data.");
+            var result = new FailureResultStub(
+                new[] { error },
+                "Input processing failed.",
+                new ResultStatusStub(400, "Bad Request")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
+
+            // Assert
+            pd.Should().BeOfType<ValidationProblemDetails>();
+            pd.Status.Should().Be(400);
+            pd.Type.Should().Be($"{ProblemTypeUri}validation"); // Fallback to category
+
+            var validationPd = (ValidationProblemDetails)pd;
+            validationPd.Errors.Should().ContainKey("General"); // Fallback key
+            validationPd.Errors["General"].Should().ContainSingle().Which.Should().Be("Invalid input data.");
+
+            pd.Extensions.Should().ContainKey("zentientErrors");
+        }
+
+        [Fact]
+        public void ToProblemDetails_Creates_ProblemDetails_For_DatabaseErrorWithCode()
+        {
+            // Arrange
+            var error = new ErrorInfo(ErrorCategory.Database, "DB-001", "Cannot connect to database.");
+            var result = new FailureResultStub(
+                new[] { error },
+                "A database error occurred.",
+                new ResultStatusStub(500, "Internal Server Error")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
+
+            // Assert
+            pd.Should().BeOfType<ProblemDetails>(); // Not ValidationProblemDetails
+            pd.Status.Should().Be(500);
+            pd.Title.Should().Be("Internal Server Error");
+            pd.Detail.Should().Be("A database error occurred.");
+            pd.Instance.Should().Be("/test");
+            pd.Type.Should().Be($"{ProblemTypeUri}db-001"); // Specific code in type
+
+            pd.Extensions.Should().ContainKey("zentientErrors");
+            var zentientErrors = pd.Extensions["zentientErrors"] as IEnumerable<object>;
+            zentientErrors.Should().NotBeNull().And.ContainSingle();
+            var errorObject = zentientErrors.First().Should().BeAssignableTo<Dictionary<string, object?>>().Subject;
+            errorObject["category"].Should().Be("database");
+            errorObject["code"].Should().Be("DB-001");
+        }
+
+        [Fact]
+        public void ToProblemDetails_Creates_ProblemDetails_For_UndefinedErrorCategory_FallsBackToStatusCode() // Renamed for clarity
+        {
+            // Arrange
+            var error = new ErrorInfo((ErrorCategory)999, "", "An unknown error occurred.");
+            var result = new FailureResultStub(
+                new[] { error },
+                "General server fault.",
+                new ResultStatusStub(500, "Internal Server Error")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
+
+            // Assert
+            pd.Should().BeOfType<ProblemDetails>();
+            pd.Status.Should().Be(500);
+            pd.Type.Should().Be($"{ProblemTypeUri}500"); // <--- FIX THIS ASSERTION
+            pd.Extensions.Should().ContainKey("zentientErrors");
+        }
+
+        [Fact]
+        public void ToProblemDetails_Creates_ProblemDetails_For_MultipleValidationErrors()
+        {
+            // Arrange
+            var error1 = new ErrorInfo(ErrorCategory.Validation, "VAL-002", "Field 'Email' is invalid.", "Email");
+            var error2 = new ErrorInfo(ErrorCategory.Validation, "VAL-003", "Field 'Age' must be positive.", "Age");
+            var result = new FailureResultStub(
+                new[] { error1, error2 },
+                "Multiple validation issues detected.",
+                new ResultStatusStub(400, "Bad Request")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
+
+            // Assert
+            pd.Should().BeOfType<ValidationProblemDetails>();
+            var validationPd = (ValidationProblemDetails)pd;
+            validationPd.Errors.Should().HaveCount(2);
+            validationPd.Errors.Should().ContainKey("Email").And.ContainKey("Age");
+
+            pd.Extensions.Should().ContainKey("zentientErrors");
+            var zentientErrors = pd.Extensions["zentientErrors"] as IEnumerable<object>;
+            zentientErrors.Should().NotBeNull().And.HaveCount(2);
+        }
+
+        [Fact]
+        public void ToProblemDetails_UsesDefaultProblemTypeBaseUri_IfProvidedBaseUriIsNullOrEmpty()
+        {
+            // Arrange
+            var error = new ErrorInfo(ErrorCategory.Request, "REQ-001", "Invalid request format.");
+            var result = new FailureResultStub(
+                new[] { error },
+                "Request error.",
+                new ResultStatusStub(400, "Bad Request")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd1 = result.ToProblemDetails(factory, context, "");
+            var pd2 = result.ToProblemDetails(factory, context, null!);
+
+            // Assert
+            pd1.Type.Should().StartWith(ProblemDetailsExtensions.DefaultProblemTypeBaseUri);
+            pd2.Type.Should().StartWith(ProblemDetailsExtensions.DefaultProblemTypeBaseUri);
+            pd1.Type.Should().EndWith("req-001");
+            pd2.Type.Should().EndWith("req-001");
+        }
+
+        [Fact]
+        public void ToProblemDetails_EnsuresTrailingSlashInBaseUri()
+        {
+            // Arrange
+            var error = new ErrorInfo(ErrorCategory.Database, "DB-002", "Connection lost.");
+            var result = new FailureResultStub(
+                new[] { error },
+                "Database connection error.",
+                new ResultStatusStub(500, "Internal Server Error")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, "https://example.com/problems");
+
+            // Assert
+            pd.Type.Should().Be("https://example.com/problems/db-002");
+        }
+
+        [Fact]
+        public void ToProblemDetails_FallsBackToStandardHttpTitleAndDetail_IfResultPropertiesAreEmpty()
+        {
+            // Arrange
+            var error = new ErrorInfo(ErrorCategory.Security, "SEC-001", "Unauthorized access.");
+            var result = new FailureResultStub(
+                new[] { error },
+                "", // Empty error detail
+                new ResultStatusStub(403, "")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
+
+            // Assert
+            pd.Status.Should().Be(403);
+            pd.Title.Should().Be("HTTP 403 Error");
+            pd.Detail.Should().Be("An error occurred with status code 403.");
+        }
+
+        [Fact]
+        public void ToProblemDetails_CreatesProblemDetails_For_NotFoundError()
+        {
+            // Arrange
+            var error = new ErrorInfo(ErrorCategory.NotFound, "RES-404", "Resource not found.");
+            var result = new FailureResultStub(
+                new[] { error },
+                "The requested resource could not be found.",
+                new ResultStatusStub(404, "Not Found")
+            );
+            var factory = CreateFactory();
+            var context = CreateHttpContext();
+
+            // Act
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
+
+            // Assert
+            pd.Should().BeOfType<ProblemDetails>();
+            pd.Status.Should().Be(404);
+            pd.Title.Should().Be("Not Found");
+            pd.Type.Should().Be($"{ProblemTypeUri}res-404");
+            pd.Detail.Should().Be("The requested resource could not be found.");
+            pd.Extensions.Should().ContainKey("zentientErrors");
         }
 
         [Fact]
         public void ToProblemDetails_Throws_On_Success_Result()
         {
             // Arrange
-            var result = new SuccessResultStub();
+            var result = new SuccessResultStub(new ResultStatusStub(200, "OK"));
             var factory = CreateFactory();
             var context = CreateHttpContext();
+            var problemTypeUri = "https://example.com/problems";
 
             // Act
-            Action act = () => result.ToProblemDetails(factory, context);
+            Action act = () => result.ToProblemDetails(factory, context, problemTypeUri);
 
             // Assert
             act.Should().Throw<InvalidOperationException>();
@@ -89,13 +315,13 @@ namespace Zentient.Results.Tests.AspNetCore
             var context = CreateHttpContext();
 
             // Act
-            var pd = result.ToProblemDetails(factory, context);
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
 
             // Assert
             pd.Should().NotBeNull();
             pd.Status.Should().Be(500);
             pd.Title.Should().Be("Internal Error");
-            pd.Type.Should().Contain("DB-001");
+            pd.Type.Should().ContainEquivalentOf("DB-001");
             pd.Detail.Should().Be("Database error");
             pd.Instance.Should().Be("/test");
             pd.Extensions.Should().ContainKey("zentientErrors");
@@ -114,13 +340,13 @@ namespace Zentient.Results.Tests.AspNetCore
             var context = CreateHttpContext();
 
             // Act
-            var pd = result.ToProblemDetails(factory, context);
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
 
             // Assert
             pd.Should().BeOfType<ValidationProblemDetails>();
             pd.Status.Should().Be(400);
             pd.Title.Should().Be("Bad Request");
-            pd.Type.Should().Contain("VAL-001");
+            pd.Type.Should().Be(ProblemTypeUri + "validation");
             pd.Detail.Should().Be("Validation failed");
             pd.Instance.Should().Be("/test");
             pd.Extensions.Should().ContainKey("zentientErrors");
@@ -141,7 +367,7 @@ namespace Zentient.Results.Tests.AspNetCore
             var context = CreateHttpContext();
 
             // Act
-            var pd = result.ToProblemDetails(factory, context);
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
 
             // Assert
             pd.Extensions.Should().ContainKey("zentientErrors");
@@ -175,17 +401,19 @@ namespace Zentient.Results.Tests.AspNetCore
         public void ToProblemDetailsT_Delegates_To_NonGeneric()
         {
             // Arrange
-            var error = new ErrorInfo(ErrorCategory.Database, "DB-001", "Database error");
-            var result = new FailureResultStubGeneric<string>(new[] { error }, "Database error", new ResultStatusStub(500, "Internal Error"));
+            var error = new ErrorInfo(ErrorCategory.Validation, "VAL-001", "Validation failed");
+            IResult<int> result = new FailureResultStub<int>(new[] { error }, "Validation failed", 0, new ResultStatusStub(400, "Bad Request"));
             var factory = CreateFactory();
             var context = CreateHttpContext();
 
-            // Act
-            var pd = result.ToProblemDetails(factory, context);
+            var pd = result.ToProblemDetails(factory, context, ProblemTypeUri);
 
             // Assert
-            pd.Should().NotBeNull();
-            pd.Status.Should().Be(500);
+            pd.Should().BeOfType<ValidationProblemDetails>();
+            pd.Status.Should().Be(400);
+            pd.Title.Should().Be("Bad Request");
+            pd.Type.Should().Be($"{ProblemTypeUri}validation");
+            pd.Detail.Should().Be("Validation failed");
         }
 
         [Fact]
@@ -218,79 +446,13 @@ namespace Zentient.Results.Tests.AspNetCore
         public void ToHttpStatusCode_Returns_Ok_On_Success()
         {
             // Arrange
-            var result = new SuccessResultStub();
+            var result = new SuccessResultStub(new ResultStatusStub((int)HttpStatusCode.OK, "OK"));
 
             // Act
             var code = result.ToHttpStatusCode();
 
             // Assert
             code.Should().Be(HttpStatusCode.OK);
-        }
-
-        // --- Test Stubs ---
-
-        private class ResultStatusStub : IResultStatus
-        {
-            public int Code { get; }
-            public string Description { get; }
-            public ResultStatusStub(int code, string description)
-            {
-                Code = code;
-                Description = description;
-            }
-        }
-
-        private class SuccessResultStub : IResult
-        {
-            public bool IsSuccess => true;
-            public bool IsFailure => false;
-            public IReadOnlyList<ErrorInfo> Errors => Array.Empty<ErrorInfo>();
-            public IReadOnlyList<string> Messages => Array.Empty<string>();
-            public string? Error => null;
-            public IResultStatus Status { get; } = new ResultStatusStub(200, "OK");
-        }
-
-        private class FailureResultStub : IResult
-        {
-            public bool IsSuccess => false;
-            public bool IsFailure => true;
-            public IReadOnlyList<ErrorInfo> Errors { get; }
-            public IReadOnlyList<string> Messages => Array.Empty<string>();
-            public string? Error { get; }
-            public IResultStatus Status { get; }
-            public FailureResultStub(IReadOnlyList<ErrorInfo> errors, string? error, IResultStatus status)
-            {
-                Errors = errors;
-                Error = error;
-                Status = status;
-            }
-        }
-
-        private class FailureResultStubGeneric<T> : IResult<T>
-        {
-            public bool IsSuccess => false;
-            public bool IsFailure => true;
-            public IReadOnlyList<ErrorInfo> Errors { get; }
-            public IReadOnlyList<string> Messages => Array.Empty<string>();
-            public string? Error { get; }
-            public IResultStatus Status { get; }
-            public T? Value => default;
-            public FailureResultStubGeneric(IReadOnlyList<ErrorInfo> errors, string? error, IResultStatus status)
-            {
-                Errors = errors;
-                Error = error;
-                Status = status;
-            }
-            public T GetValueOrThrow() => throw new InvalidOperationException();
-            public T GetValueOrThrow(string message) => throw new InvalidOperationException();
-            public T GetValueOrThrow(Func<Exception> exceptionFactory) => throw new InvalidOperationException();
-            public T GetValueOrDefault(T fallback) => fallback;
-            public IResult<U> Map<U>(Func<T, U> selector) => throw new NotImplementedException();
-            public IResult<U> Bind<U>(Func<T, IResult<U>> binder) => throw new NotImplementedException();
-            public IResult<T> Tap(Action<T> onSuccess) => this;
-            public IResult<T> OnSuccess(Action<T> action) => this;
-            public IResult<T> OnFailure(Action<IReadOnlyList<ErrorInfo>> action) { action(Errors); return this; }
-            public U Match<U>(Func<T, U> onSuccess, Func<IReadOnlyList<ErrorInfo>, U> onFailure) => onFailure(Errors);
         }
     }
 }
