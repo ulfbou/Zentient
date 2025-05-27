@@ -15,10 +15,11 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Utilities\Zentient.Utilities.csproj" />
+		<ProjectReference Include="..\Results\Zentient.Results.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Zentient.Results" Version="0.1.0" />
+		<!-- <PackageReference Include="Zentient.Results" Version="0.1.0" />-->
 	</ItemGroup>
 
 </Project>
