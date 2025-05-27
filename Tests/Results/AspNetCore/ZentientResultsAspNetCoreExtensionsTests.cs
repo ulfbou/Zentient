@@ -13,6 +13,13 @@ using Xunit;
 
 namespace Zentient.Results.Tests.AspNetCore
 {
+    /// <summary>
+    /// Unit tests for <see cref="ZentientResultsAspNetCoreExtensions"/> to ensure proper registration of services 
+    /// and configuration of ASP.NET Core options.
+    /// These tests verify that the necessary services are registered correctly and that the options
+    /// are configured as expected, including the customization of <see cref="ProblemDetails"/> and
+    /// <see cref="ValidationProblemDetails"/> responses.
+    /// </summary>
     public class ZentientResultsAspNetCoreExtensionsTests
     {
         [Fact]
@@ -22,7 +29,7 @@ namespace Zentient.Results.Tests.AspNetCore
             var services = new ServiceCollection();
 
             // Act
-            services.AddZentientResultsAspNetCore();
+            ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, null, null);
             var provider = services.BuildServiceProvider();
 
             // Assert
@@ -36,7 +43,7 @@ namespace Zentient.Results.Tests.AspNetCore
             var services = new ServiceCollection();
 
             // Act
-            services.AddZentientResultsAspNetCore();
+            ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, null, null);
             var provider = services.BuildServiceProvider();
 
             // Assert
@@ -50,7 +57,7 @@ namespace Zentient.Results.Tests.AspNetCore
             var services = new ServiceCollection();
 
             // Act
-            services.AddZentientResultsAspNetCore();
+            ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, null, null);
             var provider = services.BuildServiceProvider();
 
             // Assert
@@ -64,7 +71,7 @@ namespace Zentient.Results.Tests.AspNetCore
             var services = new ServiceCollection();
 
             // Act
-            services.AddZentientResultsAspNetCore();
+            ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, null, null);
             var provider = services.BuildServiceProvider();
 
             // Assert
@@ -77,14 +84,14 @@ namespace Zentient.Results.Tests.AspNetCore
             // Arrange
             var services = new ServiceCollection();
             string? customKey = null;
-            services.AddZentientResultsAspNetCore(options =>
+            Zentient.Results.AspNetCore.ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, (ProblemDetailsOptions options) =>
             {
                 options.CustomizeProblemDetails = ctx =>
                 {
                     ctx.ProblemDetails.Extensions["custom"] = "value";
                     customKey = "value";
                 };
-            });
+            }, null);
 
             var provider = services.BuildServiceProvider();
             var options = provider.GetRequiredService<IOptions<ProblemDetailsOptions>>().Value;
@@ -110,7 +117,7 @@ namespace Zentient.Results.Tests.AspNetCore
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddZentientResultsAspNetCore();
+            ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, null, null);
 
             var provider = services.BuildServiceProvider();
             var options = provider.GetRequiredService<IOptions<ProblemDetailsOptions>>().Value;
@@ -136,7 +143,7 @@ namespace Zentient.Results.Tests.AspNetCore
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddZentientResultsAspNetCore();
+            ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, null, null);
             var provider = services.BuildServiceProvider();
 
             var options = provider.GetRequiredService<IOptions<ApiBehaviorOptions>>().Value;
@@ -165,7 +172,7 @@ namespace Zentient.Results.Tests.AspNetCore
             // Arrange
             var services = new ServiceCollection();
             services.AddControllers();
-            services.AddZentientResultsAspNetCore();
+            ZentientResultsAspNetCoreExtensions.AddZentientResultsAspNetCore(services, null, null);
 
             // Act
             var provider = services.BuildServiceProvider();
