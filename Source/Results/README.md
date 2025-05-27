@@ -1,199 +1,142 @@
-# Zentient.Results
 
-[![NuGet Badge](https://buildstats.info/nuget/Zentient.Results)](https://www.nuget.org/packages/Zentient.Results)
+# Zentient.Results 0.1.0
 
-A robust and flexible result object for .NET 9, providing a standardized way to represent the outcome of operations, whether successful or not. This library encourages explicit error handling and clear communication of operation status.
+**Lightweight Result Handling for .NET**
 
-## Overview
+Zentient.Results is a compact and extensible .NET library designed to provide a robust alternative to traditional exception handling for representing the outcomes of operations. It encapsulates success or failure states, with optional values, detailed error information, and informational messages. Zentient.Results is ideal for developers seeking a functional programming style, streamlined error propagation, and clean business logic without over-reliance on exceptions for control flow.
 
-`Zentient.Results` introduces the `IResult` and `IResult<TValue>` interfaces, along with concrete `Result` and `Result<T>` structs. These structures allow you to encapsulate the outcome of a function or operation, including:
+---
 
-* **Success or Failure:** Clearly indicates whether the operation succeeded.
-* **Value (Generic Result):** Holds the result of a successful operation.
-* **Errors:** A collection of detailed `ErrorInfo` objects for failures, including category, code, message, and optional data/inner errors.
-* **Messages:** A collection of informational messages for successful operations.
-* **Status:** An `IResultStatus` object providing a numerical code and description of the outcome (e.g., Success, BadRequest, NotFound).
-* **Monadic Operations:** Includes `Map`, `Bind`, and `Tap` for composable operations.
-* **Implicit Conversions:** Simplifies the creation of successful generic results.
-* **JSON Serialization:** Built-in `System.Text.Json` converters for seamless API integration.
+## 🚀 Installation
 
-## Installation
+Zentient.Results is distributed as a NuGet package.
 
-You can install the `Zentient.Results` NuGet package using the .NET CLI:
+**.NET CLI:**
 
-```bash
-dotnet add package Zentient.Results
-````
-
-Or using the NuGet Package Manager in Visual Studio.
-
-## Key Features
-
-### Clear Result Representation
-
-The `Result` and `Result<T>` structs provide a clear and consistent way to represent operation outcomes, making your code more readable and maintainable.
-
-```csharp
-public IResult<User> GetUserById(int id)
-{
-    var user = _dbContext.Users.Find(id);
-    if (user is null)
-    {
-        return Result<User>.NotFound(new ErrorInfo(ErrorCategory.NotFound, "UserNotFound", $"User with ID '{id}' not found."));
-    }
-    return Result<User>.Success(user);
-}
-
-public IResult UpdateUserProfile(User user)
-{
-    if (string.IsNullOrWhiteSpace(user.Email))
-    {
-        return Result.Validation(new[] { new ErrorInfo(ErrorCategory.Validation, "InvalidEmail", "Email cannot be empty.") });
-    }
-    _dbContext.Users.Update(user);
-    _dbContext.SaveChanges();
-    return Result.Success("User profile updated successfully.");
-}
+```sh
+dotnet add package Zentient.Results --version 0.1.0
 ```
 
-### Detailed Error Information
+**NuGet Package Manager Console:**
 
-The `ErrorInfo` struct provides structured information about errors, making it easier to understand and handle failures.
+```ps
+Install-Package Zentient.Results -Version 0.1.0
+```
+
+> **Prerequisite:**  
+> This library targets **.NET 9.0**. Ensure your project is configured for .NET 9.0 or a compatible framework.
+
+---
+
+## ✨ Usage Examples
+
+Zentient.Results offers both non-generic (`Result`) and generic (`Result<T>`) types for handling operations with or without return values.
+
+### Basic Success and Failure
 
 ```csharp
-if (result.IsFailure)
+using Zentient.Results;
+
+// Non-generic Result
+IResult operationResult = Result.Success("Operation completed successfully!");
+if (operationResult.IsSuccess)
 {
-    foreach (var error in result.Errors)
-    {
-        Console.WriteLine($"Error Category: {error.Category}, Code: {error.Code}, Message: {error.Message}");
-        if (error.Data != null)
-        {
-            Console.WriteLine($"  Data: {error.Data}");
-        }
-        if (error.InnerErrors.Any())
-        {
-            Console.WriteLine("  Inner Errors:");
-            foreach (var innerError in error.InnerErrors)
-            {
-                Console.WriteLine($"    Code: {innerError.Code}, Message: {innerError.Message}");
-            }
-        }
-    }
+    Console.WriteLine(operationResult.Messages.FirstOrDefault()); // Output: Operation completed successfully!
+}
+
+operationResult = Result.Failure(new ErrorInfo(ErrorCategory.General, "E001", "Something went wrong."));
+if (operationResult.IsFailure)
+{
+    Console.WriteLine(operationResult.Error); // Output: Something went wrong.
+    Console.WriteLine(operationResult.Errors.First().Code); // Output: E001
+}
+
+// Generic Result<T>
+IResult<int> calculateResult = Result.Success(42, "Calculation successful.");
+if (calculateResult.IsSuccess)
+{
+    Console.WriteLine($"Value: {calculateResult.Value}, Message: {calculateResult.Messages.FirstOrDefault()}");
+    // Output: Value: 42, Message: Calculation successful.
+}
+
+calculateResult = Result<int>.Failure(
+    value: default, // Or some partial result if applicable
+    error: new ErrorInfo(ErrorCategory.Validation, "V002", "Input was invalid."),
+    status: ResultStatuses.BadRequest);
+
+if (calculateResult.IsFailure)
+{
+    Console.WriteLine($"Error: {calculateResult.Error}, Status: {calculateResult.Status.Description}");
+    // Output: Error: Input was invalid., Status: Bad Request
 }
 ```
 
-### Predefined Result Statuses
+---
 
-The `ResultStatuses` static class offers a set of commonly used result statuses, promoting consistency across your application.
+### Monadic Operations (for `Result<T>`)
 
-```csharp
-return Result.Failure(new ErrorInfo(ErrorCategory.Authorization, "InsufficientPermissions", "User does not have required permissions."), ResultStatuses.Forbidden);
-```
-
-### Monadic Operations for Composition
-
-`Zentient.Results` includes `Map` and `Bind` methods for `Result<T>`, enabling you to chain operations in a functional style while handling potential failures gracefully.
+Zentient.Results supports common monadic operations like `Map`, `Bind`, and `Tap`, enabling elegant chaining of operations.
 
 ```csharp
-public IResult<string> GetUserName(int userId) =>
-    GetUserById(userId)
-        .Map(user => user.Name);
+using Zentient.Results;
 
-public IResult<OrderDetails> GetOrderDetails(int orderId) =>
-    GetOrder(orderId)
-        .Bind(order => _orderService.FetchDetails(order));
-```
-
-### Seamless JSON Serialization
-
-The library provides custom `System.Text.Json` converters (`ResultJsonConverter`) to ensure that `Result` and `Result<T>` objects are serialized correctly when used in ASP.NET Core APIs or other scenarios involving JSON serialization.
-
-```csharp
-[HttpGet("{id}")]
-public ActionResult<Result<User>> Get(int id)
+IResult<string> GetUserName(int userId)
 {
-    var result = _userService.GetUserById(id);
-    return result.IsSuccess ? Ok(result) : NotFound(result);
+    if (userId > 0)
+        return Result<string>.Success($"User_{userId}");
+    return Result<string>.Failure(default, new ErrorInfo(ErrorCategory.NotFound, "USER_NF", "User not found."));
 }
-```
 
-### Implicit Conversion
-
-Creating successful generic results is simplified with implicit conversion from the value type `T`.
-
-```csharp
-public IResult<int> GetCount()
+IResult<int> GetUserAge(string userName)
 {
-    int count = _dataService.CountItems();
-    return count; // Implicitly converted to Result<int>.Success(count)
+    // Simulate fetching age based on user name
+    if (userName.StartsWith("User_"))
+        return Result<int>.Success(30);
+    return Result<int>.Failure(default, new ErrorInfo(ErrorCategory.Validation, "INV_NM", "Invalid user name format."));
 }
+
+// Chaining operations with Map and Bind
+IResult<string> result = GetUserName(123)
+    .Map(name => name.ToUpper()) // Transforms the value if successful
+    .Bind(upperName => GetUserAge(upperName).Map(age => $"{upperName} is {age} years old.")) // Chains another Result
+    .Tap(finalMessage => Console.WriteLine($"Successfully processed: {finalMessage}")) // Performs a side effect on success
+    .OnFailure(errors => Console.WriteLine($"Failed: {errors.First().Message}")); // Handles failure
+
+// Example for a failed path
+IResult<string> failedResult = GetUserName(0)
+    .Map(name => name.ToUpper())
+    .Bind(upperName => GetUserAge(upperName).Map(age => $"{upperName} is {age} years old."))
+    .Tap(finalMessage => Console.WriteLine($"Successfully processed: {finalMessage}"))
+    .OnFailure(errors => Console.WriteLine($"Failed: {errors.First().Message}")); // Output: Failed: User not found.
 ```
 
-## Usage Examples
+---
 
-### Returning a Successful Result with a Value
+## 📚 API Reference Summary
 
-```csharp
-public IResult<Customer> GetCustomer(int id)
-{
-    var customer = _customerRepository.GetById(id);
-    if (customer != null)
-    {
-        return Result<Customer>.Success(customer, "Customer retrieved successfully.");
-    }
-    return Result<Customer>.NotFound(new ErrorInfo(ErrorCategory.NotFound, "CustomerNotFound", $"Customer with ID '{id}' not found."));
-}
-```
+- `IResult`: The non-generic interface for operation outcomes. Provides `IsSuccess`, `IsFailure`, `Errors`, `Messages`, `Error`, and `Status`.
+- `IResult<T>`: The generic interface for operations that return a value. Extends `IResult` and adds `Value`, as well as monadic methods (`Map`, `Bind`, `Tap`, `OnSuccess`, `OnFailure`, `Match`, `GetValueOrThrow()`, and `GetValueOrDefault()`).
+- `Result`: The non-generic struct implementation of `IResult`, offering static factory methods for creating success and various failure types (e.g., `Success()`, `Failure()`, `NotFound()`, `Validation()`).
+- `Result<T>`: The generic struct implementation of `IResult<T>`, providing similar static factory methods and implementation of monadic operations.
+- `ErrorInfo`: A struct representing detailed error information, including `Category` (e.g., Validation, NotFound), `Code`, `Message`, `Data`, and `InnerErrors`.
+- `ErrorCategory`: An enum with strongly-typed categories for common error types.
+- `IResultStatus`: An interface representing the status of a result (e.g., HTTP-like status codes).
+- `DefaultResultStatus`: A default implementation of `IResultStatus`.
+- `ResultStatuses`: A static class providing predefined common result statuses (e.g., `Success`, `BadRequest`, `NotFound`, `InternalServerError`).
+- `ResultJsonConverter`: A `System.Text.Json` converter for correct serialization of `Result` and `Result<T>` types in JSON payloads—particularly useful for API responses.
 
-### Returning a Failure Result with Multiple Validation Errors
+---
 
-```csharp
-public IResult CreateOrder(OrderDto orderDto)
-{
-    var errors = new List<ErrorInfo>();
-    if (orderDto.TotalAmount <= 0)
-    {
-        errors.Add(new ErrorInfo(ErrorCategory.Validation, "InvalidAmount", "Total amount must be greater than zero."));
-    }
-    if (string.IsNullOrWhiteSpace(orderDto.ShippingAddress))
-    {
-        errors.Add(new ErrorInfo(ErrorCategory.Validation, "MissingAddress", "Shipping address is required."));
-    }
+## 📝 License
 
-    if (errors.Any())
-    {
-        return Result.Validation(errors);
-    }
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for full details.
 
-    // Proceed with order creation
-    var order = MapToOrder(orderDto);
-    _orderRepository.Add(order);
-    _orderRepository.SaveChanges();
-    return Result.Success("Order created successfully.");
-}
-```
+---
 
-### Using Monadic Operations
+## 🤝 Contributing
 
-```csharp
-public IResult<string> GetCustomerEmail(int customerId) =>
-    GetCustomer(customerId)
-        .Bind(customer => _emailService.GetEmailForCustomer(customer.Id));
+Contributions are welcome! If you have suggestions, new features, or bug reports, please open an issue or submit a pull request on the [GitHub repository](https://github.com/ulfbou/Zentient).
 
-// Assume _emailService.GetEmailForCustomer returns IResult<string>
-```
+---
 
-## Contribution Guidelines
-
-Contributions to `Zentient.Results` are welcome\! Please ensure that your contributions:
-
-  * Are compatible with .NET 9.
-  * Include appropriate unit tests.
-  * Follow the existing code style.
-  * Clearly explain the purpose and benefits of your changes.
-
-Feel free to submit pull requests or open issues for bug reports and feature requests.
-
-## License
-
-`Zentient.Results` is licensed under the [MIT License](https://www.google.com/search?q=LICENSE).
+> **Zentient.Results** — Write explicit, robust, and maintainable result handling for modern .NET.
