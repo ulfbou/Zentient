@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Options;
 
 using Zentient.Results;
+using Zentient.Results.AspNetCore.Configuration;
 
 namespace Zentient.Results.AspNetCore.Filters
 {
@@ -25,16 +26,26 @@ namespace Zentient.Results.AspNetCore.Filters
     public class ProblemDetailsResultFilter : IAsyncResultFilter
     {
         private readonly ProblemDetailsFactory _problemDetailsFactory;
+        private readonly ProblemDetailsOptions _problemDetailsOptions;
+        private readonly string _problemTypeBaseUri;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProblemDetailsResultFilter"/> class.
         /// </summary>
         /// <param name="problemDetailsFactory">The factory used to create <see cref="ProblemDetails"/> instances.
         /// This dependency is resolved from the ASP.NET Core Dependency Injection container.</param>
+        /// <param name="options">Configuration options for problem details, not used in this filter but can be injected for future extensibility.</param>
+        /// <param name="zentientProblemDetailsOptions">Configuration options for Zentient problem details, not used in this filter but can be injected for future extensibility.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="problemDetailsFactory"/> is null.</exception>
-        public ProblemDetailsResultFilter(ProblemDetailsFactory problemDetailsFactory, IOptions<ProblemDetailsOptions> options)
+        public ProblemDetailsResultFilter(
+            ProblemDetailsFactory problemDetailsFactory,
+            IOptions<ProblemDetailsOptions> options,
+            IOptions<ZentientProblemDetailsOptions> zentientProblemDetailsOptions)
         {
             _problemDetailsFactory = problemDetailsFactory ?? throw new ArgumentNullException(nameof(problemDetailsFactory));
+            _problemDetailsOptions = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            _problemTypeBaseUri = zentientProblemDetailsOptions.Value.ProblemTypeBaseUri
+                ?? "https://default.com/errors/";
         }
 
         /// <summary>
@@ -87,7 +98,7 @@ namespace Zentient.Results.AspNetCore.Filters
                         (int)HttpStatusCode.Created => new CreatedResult(string.Empty, successResultWithObject.Value),
                         (int)HttpStatusCode.Accepted => new AcceptedResult(string.Empty, successResultWithObject.Value),
                         (int)HttpStatusCode.NoContent => new NoContentResult(),
-                        _ => new ObjectResult(successResultWithObject.Value) { StatusCode = zentientResult.Status.ToHttpStatusCode() }
+                        _ => new ObjectResult(successResultWithObject.Value) { StatusCode = (int)zentientResult.Status.ToHttpStatusCode() }
                     };
                 }
 
@@ -97,11 +108,11 @@ namespace Zentient.Results.AspNetCore.Filters
                     (int)HttpStatusCode.Created => new StatusCodeResult((int)HttpStatusCode.Created),
                     (int)HttpStatusCode.Accepted => new StatusCodeResult((int)HttpStatusCode.Accepted),
                     (int)HttpStatusCode.NoContent => new NoContentResult(),
-                    _ => new StatusCodeResult(zentientResult.Status.ToHttpStatusCode())
+                    _ => new StatusCodeResult((int)zentientResult.Status.ToHttpStatusCode())
                 };
             }
 
-            var problemDetails = zentientResult.ToProblemDetails(_problemDetailsFactory, httpContext);
+            var problemDetails = zentientResult.ToProblemDetails(_problemDetailsFactory, httpContext, _problemTypeBaseUri);
 
             if (problemDetails is ValidationProblemDetails validationProblemDetails)
             {
