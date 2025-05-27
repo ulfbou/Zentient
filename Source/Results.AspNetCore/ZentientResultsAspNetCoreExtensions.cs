@@ -10,6 +10,7 @@ using Zentient.Results.AspNetCore;
 
 using Zentient.Results;
 using Zentient.Results.AspNetCore.Filters;
+using Zentient.Results.AspNetCore.Configuration;
 
 namespace Zentient.Results.AspNetCore
 {
@@ -28,22 +29,25 @@ namespace Zentient.Results.AspNetCore
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
         /// <param name="configureProblemDetails">An optional action to configure <see cref="Microsoft.AspNetCore.Mvc.ProblemDetailsOptions"/>.</param>
+        /// <param name="configureZentientProblemDetails">An optional action to configure <see cref="ZentientProblemDetailsOptions"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/> with Zentient.Results services added.</returns>
-        public static IServiceCollection AddZentientResultsAspNetCore(this IServiceCollection services,
-            Action<ProblemDetailsOptions>? configureProblemDetails = null)
+        public static IServiceCollection AddZentientResultsAspNetCore(
+                    this IServiceCollection services,
+                    Action<Microsoft.AspNetCore.Http.ProblemDetailsOptions>? configureMvcProblemDetails = null,
+                    Action<ZentientProblemDetailsOptions>? configureZentientProblemDetails = null)
         {
-            // Ensure MVC services are added if not already (they register ProblemDetailsFactory and ApiBehaviorOptions)
-            // It's generally good practice to let the user call AddControllers/AddControllersWithViews etc.
-            // If you want to ensure it, you can add a check or conditionally add it.
-            // services.AddControllers(); // Or similar, depending on app type.
+            services.AddOptions<ZentientProblemDetailsOptions>()
+                    .Configure(options =>
+                    { });
 
-            // 1. Register ProblemDetailsFactory explicitly (it's a core dependency)
+            if (configureZentientProblemDetails != null)
+            {
+                services.Configure(configureZentientProblemDetails);
+            }
+
             services.AddSingleton<ProblemDetailsFactory, DefaultProblemDetailsFactory>();
+            services.AddHttpContextAccessor();
 
-            // 2. Register IHttpContextAccessor (for cases where HttpContext is needed outside of direct request context, though filters get it)
-            services.AddHttpContextAccessor(); // Provided by Microsoft.AspNetCore.Http
-
-            // 3. Configure ApiBehaviorOptions to use Zentient.Results for InvalidModelStateResponseFactory
             services.PostConfigure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory = context =>
@@ -55,11 +59,17 @@ namespace Zentient.Results.AspNetCore
                         .ToList();
 
                     var result = Result.Validation(errors);
-
-                    // Resolve ProblemDetailsFactory from the current request scope
                     var problemDetailsFactory = context.HttpContext.RequestServices.GetRequiredService<ProblemDetailsFactory>();
-                    // Pass the factory and httpContext to ToProblemDetails
-                    var problemDetails = result.ToProblemDetails(problemDetailsFactory, context.HttpContext);
+                    var zentientOptions = context.HttpContext.RequestServices.GetRequiredService<IOptions<ZentientProblemDetailsOptions>>();
+
+                    if (configureZentientProblemDetails != null)
+                    {
+                        configureZentientProblemDetails(zentientOptions.Value);
+                    }
+
+                    var problemTypeBaseUri = zentientOptions.Value?.ProblemTypeBaseUri
+                        ?? "https://default.com/errors/fallback/";
+                    var problemDetails = result.ToProblemDetails(problemDetailsFactory, context.HttpContext, problemTypeBaseUri);
 
                     return new ObjectResult(problemDetails)
                     {
@@ -69,17 +79,16 @@ namespace Zentient.Results.AspNetCore
                 };
             });
 
-            // 4. Configure Microsoft.AspNetCore.Mvc.ProblemDetailsOptions for global customizations
-            services.PostConfigure<ProblemDetailsOptions>(options =>
+            services.PostConfigure<Microsoft.AspNetCore.Http.ProblemDetailsOptions>(options =>
             {
-                // Apply any custom configuration provided by the consumer
-                configureProblemDetails?.Invoke(options);
+                configureMvcProblemDetails?.Invoke(options);
 
-                // Add a default CustomizeProblemDetails if none is already set or if it's not overriding existing logic
                 var originalCustomize = options.CustomizeProblemDetails;
+
                 options.CustomizeProblemDetails = context =>
                 {
-                    originalCustomize?.Invoke(context); // Call original customization
+                    originalCustomize?.Invoke(context);
+
                     if (!context.ProblemDetails.Extensions.ContainsKey("traceId"))
                     {
                         context.ProblemDetails.Extensions["traceId"] = System.Diagnostics.Activity.Current?.Id ?? context.HttpContext.TraceIdentifier;
@@ -87,14 +96,12 @@ namespace Zentient.Results.AspNetCore
                 };
             });
 
-            // 5. Register and add the global ProblemDetailsResultFilter for MVC
-            services.AddScoped<ProblemDetailsResultFilter>(); // Use Scoped for filters
+            services.AddScoped<ProblemDetailsResultFilter>();
             services.Configure<MvcOptions>(options =>
             {
-                options.Filters.AddService<ProblemDetailsResultFilter>(); // Tells MVC to resolve from DI
+                options.Filters.AddService<ProblemDetailsResultFilter>();
             });
 
-            // 6. Register ZentientResultEndpointFilter for Minimal APIs (needs to be explicitly applied to endpoints)
             services.AddScoped<ZentientResultEndpointFilter>();
 
             return services;

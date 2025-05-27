@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc.ModelBinding; // For ModelStateDictionary
 using Microsoft.Extensions.DependencyInjection; // For GetService
 using Microsoft.Extensions.Options; // For IOptions
 using Zentient.Results;
-using System.Net; // For HttpStatusCode
+using System.Net;
+using Zentient.Utilities; // For HttpStatusCode
 
 namespace Zentient.Results.AspNetCore
 {
@@ -17,7 +18,7 @@ namespace Zentient.Results.AspNetCore
     public static class ProblemDetailsExtensions
     {
         // Base URI for problem types. Customize this to reflect your API's documentation.
-        private const string DefaultProblemTypeBaseUri = "https://yourdomain.com/errors/";
+        public const string DefaultProblemTypeBaseUri = "https://yourdomain.com/errors/";
 
         /// <summary>
         /// Converts a failed <see cref="Zentient.Results.IResult"/> instance into an appropriate
@@ -35,38 +36,86 @@ namespace Zentient.Results.AspNetCore
         public static ProblemDetails ToProblemDetails(
                     this Zentient.Results.IResult result,
                     ProblemDetailsFactory factory,
-                    HttpContext httpContext)
+                    HttpContext httpContext,
+                    string problemTypeBaseUri)
         {
             ArgumentNullException.ThrowIfNull(factory, nameof(factory));
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
 
             if (result.IsSuccess)
             {
-                throw new InvalidOperationException("Cannot convert a successful result to ProblemDetails.");
+                throw new InvalidOperationException("Cannot convert a successful result to ProblemDetails. ProblemDetails are for failure results only.");
+            }
+
+            if (string.IsNullOrWhiteSpace(problemTypeBaseUri))
+            {
+                problemTypeBaseUri = DefaultProblemTypeBaseUri;
+            }
+            else if (!problemTypeBaseUri.EndsWith("/"))
+            {
+                problemTypeBaseUri += "/";
             }
 
             var firstError = result.Errors.FirstOrDefault();
-            var statusCode = result.Status.ToHttpStatusCode();
+            var httpStatusCodeEnum = result.Status.ToHttpStatusCode();
+            int statusCode = (int)httpStatusCodeEnum;
+            string problemType;
 
-            // Determine problem type, title, and detail based on the Zentient.Results.IResult properties
-            string problemType = $"{DefaultProblemTypeBaseUri}{(firstError.Code ?? result.Status.Code.ToString())}";
+            if (result.Errors.Any(e => e.Category == ErrorCategory.Validation))
+            {
+                problemType = $"{problemTypeBaseUri}validation";
+            }
+            else if (result.Errors.Any())
+            {
+                if (!string.IsNullOrWhiteSpace(firstError.Code))
+                {
+                    problemType = $"{problemTypeBaseUri}{firstError.Code.ToLowerInvariant()}";
+                }
+                else if (firstError.Category.IsDefined() && firstError.Category != ErrorCategory.None)
+                {
+                    problemType = $"{problemTypeBaseUri}{firstError.Category.ToString().ToLowerInvariant()}";
+                }
+                else
+                {
+                    problemType = $"{problemTypeBaseUri}{statusCode.ToString().ToLowerInvariant()}";
+                }
+            }
+            else
+            {
+                problemType = $"{problemTypeBaseUri}{statusCode.ToString().ToLowerInvariant()}";
+            }
+
             string problemTitle = result.Status.Description;
+            if (string.IsNullOrWhiteSpace(problemTitle))
+            {
+                problemTitle = $"HTTP {statusCode} Error";
+            }
+
             string problemDetail = result.Error!;
+            if (string.IsNullOrWhiteSpace(problemDetail))
+            {
+                problemDetail = $"An error occurred with status code {statusCode}.";
+            }
 
             ProblemDetails problemDetails;
 
-            if (statusCode == (int)HttpStatusCode.UnprocessableEntity || result.Errors.Any(e => e.Category == ErrorCategory.Validation))
+            if (result.Errors.Any(e => e.Category == ErrorCategory.Validation) || statusCode == (int)HttpStatusCode.UnprocessableEntity)
             {
                 var modelState = new ModelStateDictionary();
+                // Only add validation errors to modelState.
+                // If statusCode is 422 but Errors list is empty, modelState will remain empty, which is correct.
                 foreach (var error in result.Errors.Where(e => e.Category == ErrorCategory.Validation))
                 {
-                    string key = error.Code;
-
-                    if (string.IsNullOrWhiteSpace(key) && error.Data is string dataString && !string.IsNullOrWhiteSpace(dataString))
+                    string key;
+                    if (error.Data is string dataString && !string.IsNullOrWhiteSpace(dataString))
                     {
                         key = dataString;
                     }
-                    if (string.IsNullOrWhiteSpace(key))
+                    else if (!string.IsNullOrWhiteSpace(error.Code))
+                    {
+                        key = error.Code;
+                    }
+                    else
                     {
                         key = "General";
                     }
@@ -76,28 +125,34 @@ namespace Zentient.Results.AspNetCore
                 problemDetails = factory.CreateValidationProblemDetails(
                     httpContext: httpContext,
                     modelStateDictionary: modelState,
-                    statusCode: statusCode,
+                    statusCode: (int)statusCode,
                     title: problemTitle,
                     type: problemType,
                     detail: problemDetail
                 );
             }
-            else
+            else // For all other non-validation failure scenarios
             {
                 problemDetails = factory.CreateProblemDetails(
-                                    httpContext: httpContext,
-                                    statusCode: statusCode,
-                                    title: problemTitle,
-                                    type: problemType,
-                                    detail: problemDetail
-                                );
+                    httpContext: httpContext,
+                    statusCode: (int)statusCode,
+                    title: problemTitle,
+                    type: problemType,
+                    detail: problemDetail
+                );
             }
 
-            problemDetails.Status ??= statusCode;
-            problemDetails.Title ??= problemTitle;
-            problemDetails.Detail ??= problemDetail;
-            problemDetails.Type ??= problemType;
+            if (problemDetails == null)
+            {
+                throw new InvalidOperationException("ProblemDetailsFactory returned null ProblemDetails.");
+            }
+
+            problemDetails.Status = (int)statusCode;
+            problemDetails.Title = problemTitle;
+            problemDetails.Detail = problemDetail;
+            problemDetails.Type = problemType;
             problemDetails.Instance ??= httpContext.Request.Path.Value;
+
 
             AddErrorInfoExtensions(problemDetails, result.Errors);
 
@@ -115,12 +170,21 @@ namespace Zentient.Results.AspNetCore
         /// <param name="httpContext">The current <see cref="HttpContext"/>.</param>
         /// <returns>A <see cref="ProblemDetails"/> instance representing the error.</returns>
         public static ProblemDetails ToProblemDetails<T>(
-                    this Zentient.Results.IResult<T> result,
-                    ProblemDetailsFactory factory,
-                    HttpContext httpContext)
+            this Zentient.Results.IResult<T> result,
+            ProblemDetailsFactory factory,
+            HttpContext httpContext,
+            string problemTypeBaseUri)
         {
-            return (result as Zentient.Results.IResult).ToProblemDetails(factory, httpContext);
+            return (result as Zentient.Results.IResult).ToProblemDetails(factory, httpContext, problemTypeBaseUri);
         }
+
+        /// <summary>
+        /// Converts the <see cref="IResultStatus"/> to an HTTP status code.
+        /// This is a helper method to extract the status code from the result status.
+        /// </summary>
+        /// <param name="status">The <see cref="IResultStatus"/> instance containing the status code.</param>
+        /// <returns>The HTTP status code as an integer.</returns>
+        public static HttpStatusCode ToHttpStatusCode(this IResultStatus status) => (HttpStatusCode)status.Code;
 
         /// <summary>
         /// Gets the most appropriate HTTP status code based on the result's error categories.
@@ -139,16 +203,20 @@ namespace Zentient.Results.AspNetCore
                 ErrorCategory.NotFound => HttpStatusCode.NotFound,
                 ErrorCategory.Validation => HttpStatusCode.BadRequest,
                 ErrorCategory.Conflict => HttpStatusCode.Conflict,
-                //ErrorCategory.Unauthorized => HttpStatusCode.Unauthorized,
-                //ErrorCategory.Forbidden => HttpStatusCode.Forbidden,
                 ErrorCategory.Authentication => HttpStatusCode.Unauthorized,
-                //ErrorCategory.Concurrency => HttpStatusCode.Conflict,
-                //ErrorCategory.TooManyRequests => (HttpStatusCode)429,
-                //ErrorCategory.ExternalService => HttpStatusCode.ServiceUnavailable,
                 ErrorCategory.Network => HttpStatusCode.ServiceUnavailable,
                 ErrorCategory.Timeout => HttpStatusCode.RequestTimeout,
                 ErrorCategory.Security => HttpStatusCode.Forbidden,
                 ErrorCategory.Request => HttpStatusCode.BadRequest,
+                ErrorCategory.Unauthorized => HttpStatusCode.Unauthorized,
+                ErrorCategory.Forbidden => HttpStatusCode.Forbidden,
+                ErrorCategory.ServiceUnavailable => HttpStatusCode.ServiceUnavailable,
+                ErrorCategory.InternalServerError => HttpStatusCode.InternalServerError,
+                //ErrorCategory.Unauthorized => HttpStatusCode.Unauthorized,
+                //ErrorCategory.Forbidden => HttpStatusCode.Forbidden,
+                //ErrorCategory.Concurrency => HttpStatusCode.Conflict,
+                //ErrorCategory.TooManyRequests => (HttpStatusCode)429,
+                //ErrorCategory.ExternalService => HttpStatusCode.ServiceUnavailable,
                 _ => HttpStatusCode.InternalServerError
             };
         }
@@ -163,35 +231,22 @@ namespace Zentient.Results.AspNetCore
         /// If this list is null or empty, no "zentientErrors" extension will be added.</param>
         private static void AddErrorInfoExtensions(ProblemDetails problemDetails, IReadOnlyList<ErrorInfo> errors)
         {
-            // Defensive null check and empty check for the main errors list
             if (errors == null || !errors.Any())
             {
-                return; // No errors to add, exit early
+                return;
             }
 
-            // Convert each ErrorInfo into a serializable dictionary representation
             problemDetails.Extensions["zentientErrors"] = errors.Select(e => ToErrorObject(e)).ToList();
 
-            // Local static function to convert a single ErrorInfo into a dictionary for JSON serialization.
-            // This function is recursive to handle nested inner errors.
             static Dictionary<string, object?> ToErrorObject(ErrorInfo error)
             {
                 var errorObject = new Dictionary<string, object?>
                 {
-                    { "category", error.Category.ToString() },
+                    { "category", error.Category.ToString().ToLowerInvariant() },
                     { "code", error.Code },
                     { "message", error.Message }
                 };
 
-                // Add the 'data' property if it's not null.
-                // IMPORTANT CONSIDERATION ADDRESSED:
-                // The serialization of 'error.Data' (which is object?) will be handled by the configured JSON serializer
-                // (e.g., System.Text.Json by default in ASP.NET Core).
-                // It is critical that 'error.Data' contains types that are naturally JSON-serializable (primitives, strings,
-                // simple collections, or Data Transfer Objects (DTOs) with public properties).
-                // If 'error.Data' holds complex objects that are not designed for JSON serialization (e.g., objects with
-                // circular references, private fields, or non-public properties), it might lead to serialization errors
-                // or unexpected output in the JSON response.
                 if (error.Data != null)
                 {
                     errorObject["data"] = error.Data;
@@ -205,13 +260,5 @@ namespace Zentient.Results.AspNetCore
                 return errorObject;
             }
         }
-
-        /// <summary>
-        /// Converts the <see cref="IResultStatus"/> to an HTTP status code.
-        /// This is a helper method to extract the status code from the result status.
-        /// </summary>
-        /// <param name="status">The <see cref="IResultStatus"/> instance containing the status code.</param>
-        /// <returns>The HTTP status code as an integer.</returns>
-        private static int ToHttpStatusCode(this IResultStatus status) => status.Code;
     }
 }
