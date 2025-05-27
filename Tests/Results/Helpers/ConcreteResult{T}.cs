@@ -5,7 +5,7 @@
     /// This class provides a simple way to create results with a value, success status, and optional errors or messages, in a test environment.
     /// </summary>
     /// <typeparam name="T">The type of the value returned on success.</typeparam>
-    public class ConcreteResult<T> : IResult<T>
+    internal class ConcreteResult<T> : IResult<T>
     {
         /// <inheritdoc />
         public bool IsSuccess { get; init; }

@@ -1,7 +1,9 @@
-﻿namespace Zentient.Results.Tests.Helpers
+﻿using Zentient.Results;
+
+namespace Zentient.Results.Tests.Helpers
 {
     /// <summary>Mock implementation of <see cref="IResult"/> for testing purposes.</summary>
-    public class FailureResultStub : IResult
+    internal class FailureResultStub : IResult
     {
         /// <inheritdoc />
         public bool IsSuccess => false;

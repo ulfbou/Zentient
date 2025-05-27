@@ -2,7 +2,7 @@
 {
     /// <summary>Mock implementation of <see cref="IResult{T}"/> for testing purposes.</summary>
     /// typeparam name="T">The type of the value returned on failure.</typeparam>
-    public class FailureResultStub<T> : IResult<T>
+    internal class FailureResultStub<T> : IResult<T>
     {
         /// <inheritdoc />
         public bool IsSuccess => false;

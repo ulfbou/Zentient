@@ -7,7 +7,7 @@ namespace Zentient.Results.Tests.Helpers
     /// A concrete implementation of <see cref="IResult"/> for use in tests.
     /// This class provides a simple way to create results with a value, success status, and optional errors or messages, in a test environment.
     /// </summary>
-    public class ConcreteResult : IResult
+    internal class ConcreteResult : IResult
     {
         /// <inheritdoc />
         public bool IsSuccess { get; init; }

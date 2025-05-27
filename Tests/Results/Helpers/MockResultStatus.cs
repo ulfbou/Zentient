@@ -1,7 +1,7 @@
 ﻿namespace Zentient.Results.Tests.Helpers
 {
     /// <summary>Mock implementation of <see cref="IResultStatus"/> for testing purposes.</summary>
-    public class MockResultStatus : IResultStatus
+    internal class MockResultStatus : IResultStatus
     {
         /// <inheritdoc />
         public int Code { get; }
